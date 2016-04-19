@@ -1,0 +1,29 @@
+{
+  "name": "typo3incubator/jobqueue",
+  "type": "typo3-cms-extension",
+  "description": "",
+  "require": {
+    "php": ">=7.0",
+    "typo3/cms-core": ">=8.0",
+    "php-amqplib/php-amqplib": "2.6.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "TYPO3Incubator\\Jobqueue\\": "Classes"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "TYPO3Incubator\\Jobqueue\\Tests\\": "Tests"
+    }
+  },
+  "replace": {
+    "typo3incubator/jobqueue": "self.version"
+  },
+  "authors": [
+    {
+      "name": "Dustin Kinney",
+      "email": "dustin@kinney.ws"
+    }
+  ]
+}
