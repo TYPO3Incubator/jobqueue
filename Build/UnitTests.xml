@@ -1,0 +1,24 @@
+<phpunit
+        backupGlobals="true"
+        backupStaticAttributes="false"
+        bootstrap="../vendor/typo3/cms/typo3/sysext/core/Build/UnitTestsBootstrap.php"
+        colors="true"
+        convertErrorsToExceptions="true"
+        convertWarningsToExceptions="true"
+        forceCoversAnnotation="false"
+        processIsolation="false"
+        stopOnError="false"
+        stopOnFailure="false"
+        stopOnIncomplete="false"
+        stopOnSkipped="false"
+        verbose="false"
+>
+    <php>
+        <env name="TYPO3_PATH_WEB" value="../web/" />
+    </php>
+    <testsuites>
+        <testsuite name="EXT:jobqueue Unit Tests">
+            <directory>../Tests/Unit/</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
