@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3Incubator\Jobqueue\Jobs;
+namespace TYPO3Incubator\Jobqueue;
 
 
 class Message implements \JsonSerializable
@@ -16,15 +16,23 @@ class Message implements \JsonSerializable
     protected $data;
 
     /**
+     * @var int
+     */
+    protected $nextExecution;
+
+    /**
+     * @var int
+     */
+    protected $attempts = 0;
+
+    /**
      * @var array
      */
-    protected $meta = [
-        'attempts' => 0
-    ];
+    protected $meta = [];
 
 
     /**
-     * Job constructor.
+     * Message constructor.
      * @param string $handler
      * @param array $data
      */
@@ -36,7 +44,7 @@ class Message implements \JsonSerializable
 
     public function getHandler()
     {
-        
+        return $this->handler;
     }
 
     public function getData()
@@ -44,14 +52,54 @@ class Message implements \JsonSerializable
         return $this->data;
     }
 
-    public function getMeta()
+    public function getMeta($key = null, $default = null)
     {
+        if($key !== null) {
+            return isset($this->meta[$key]) ? $this->meta[$key] : $default;
+        }
         return $this->meta;
     }
 
-    public function release()
+    public function setMeta($key, $value)
     {
+        $this->meta[$key] = $value;
+        return $this;
+    }
 
+    /**
+     * @param int $attempts
+     * @return Message
+     */
+    public function setAttempts($attempts)
+    {
+        $this->attempts = $attempts;
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getAttempts()
+    {
+        return $this->attempts;
+    }
+
+    /**
+     * @param int $nextExecution
+     * @return Message
+     */
+    public function setNextExecution($nextExecution)
+    {
+        $this->nextExecution = $nextExecution;
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getNextExecution()
+    {
+        return $this->nextExecution;
     }
 
 
@@ -66,8 +114,10 @@ class Message implements \JsonSerializable
     {
         return json_encode([
             'handler' => $this->handler,
-            'data' => json_encode($this->data),
-            'meta' => json_encode($this->meta)
+            'data' => $this->data,
+            'attempts' => $this->attempts,
+            'nextexecution' => $this->nextExecution
         ]);
     }
+
 }
