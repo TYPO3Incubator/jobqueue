@@ -1,0 +1,33 @@
+language: php
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  include:
+    - php: 7.0
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - parallel
+
+cache:
+  directories:
+    - $HOME/.composer/cache
+
+before_install:
+  - composer self-update
+  - composer --version
+  - git config --global user.name "Dustin Kinney"
+  - git config --global user.email "dustin@kinney.ws"
+
+before_script:
+  - composer install -o;
+
+script:
+  - >
+    echo;
+    echo "Running unit test suite";
+    ./Build/runTests.sh;
