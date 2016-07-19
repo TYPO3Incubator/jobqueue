@@ -1,0 +1,56 @@
+<div id="tx-jobqueue-example">
+    <h1><f:translate key="headline" /></h1>
+    <f:flashMessages />
+    <div class="col-xs-12">
+        <f:form action="queue" enctype="multipart/form-data" method="POST" class="form-horizontal">
+            <div class="form-group">
+                <label for="backend"><f:translate key="form-backend" /></label>
+                <f:form.select id="backend" name="backend" value="default" class="form-control" options="{backends}" />
+            </div>
+            <div class="form-group">
+                <label for="handler">Handler</label>
+                <f:form.select id="handler" name="handler" class="form-control" options="{handler}" />
+            </div>
+            <div class="form-group">
+                <label for="queue">Name of the queue</label>
+                <f:form.textfield value="default" id="queue" name="queue" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="count">Times to queue</label>
+                <f:form.textfield type="number" value="3" id="count" name="count" class="form-control" />
+            </div>
+            <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->sleep">
+                <div class="form-group">
+                    <label for="queue">Duration</label>
+                    <f:form.textfield type="number" value="5" id="duration" name="duration" class="form-control" />
+                </div>
+            </div>
+            <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->resize">
+                <div class="form-group">
+                    <label for="image">Image</label>
+                    <f:form.upload id="image" name="image" class="form-control" />
+                </div>
+            </div>
+            <div class="form-group">
+                <f:form.submit value="Queue!" />
+            </div>
+        </f:form>
+    </div>
+</div>
+<script type="text/javascript">
+    function activatePanel(prop) {
+        var $divs = $('div.conditional-props');
+        var filter = prop;
+        $divs.addClass('hidden');
+        $divs.filter(function(idx) {
+            return $(this).data('handler') === filter;
+        }).removeClass('hidden');
+    }
+    jQuery(document).ready(function($) {
+        var $handler = $('#handler');
+        $handler.change(function(){
+            activatePanel($(this).val());
+        });
+        activatePanel($handler.val());
+    });
+</script>
