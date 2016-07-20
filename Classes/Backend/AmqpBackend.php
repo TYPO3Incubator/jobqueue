@@ -31,6 +31,12 @@ class AmqpBackend implements BackendInterface, QueueListener
     protected $declaredExchanges = [];
 
     /**
+     * array holding already declared queues
+     * @var array
+     */
+    protected $declaredQueues = [];
+
+    /**
      * @var array
      */
     protected $boundQueues = [];
@@ -103,6 +109,7 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function get($queue, $lock = true)
     {
+        $this->declareQueue($queue);
         $message = $this->channel->basic_get($queue, false);
         if($message instanceof \PhpAmqpLib\Message\AMQPMessage) {
             $msg = $this->buildMessage($message);
@@ -304,8 +311,11 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     protected function declareQueue($queue)
     {
-        if(! $this->queueOverrideExists($queue)) {
-            $this->channel->queue_declare($queue, false, true, false, false, true);
+        if(!isset($this->declaredQueues[$queue])) {
+            if(! $this->queueOverrideExists($queue)) {
+                $this->channel->queue_declare($queue, false, true, false, false, true);
+                $this->declaredQueues[$queue] = true;
+            }
         }
     }
 
