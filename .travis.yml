@@ -27,6 +27,7 @@ before_install:
   - git config --global user.email "dustin@kinney.ws"
 
 before_script:
+  - phpenv config-rm xdebug.ini
   - composer install -o;
 
 script:
