@@ -6,7 +6,7 @@ matrix:
   include:
     - php: 7.0
 
-sudo: false
+sudo: true
 
 services:
   - rabbitmq
