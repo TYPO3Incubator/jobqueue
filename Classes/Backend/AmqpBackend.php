@@ -368,7 +368,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         }
         $msg = (new \TYPO3Incubator\Jobqueue\Message($payload['handler'], $payload['data']))
             ->setAttempts($payload['attempts'])
-            ->setNextExecution($payload['nextExecution']);
+            ->setNextExecution($payload['nextexecution']);
         if(!empty($message->delivery_info['delivery_tag'])) {
             $msg->setMeta('amqp.delivery_tag', $message->delivery_info['delivery_tag']);
         }
