@@ -1,6 +1,6 @@
 engines:
   phpmd:
-    enabled:true
+    enabled: true
   phpcodesniffer:
     enabled: true
   duplication:
