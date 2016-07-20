@@ -8,6 +8,9 @@ matrix:
 
 sudo: false
 
+services:
+  - rabbitmq
+
 addons:
   apt:
     packages:
@@ -29,5 +32,5 @@ before_script:
 script:
   - >
     echo;
-    echo "Running unit test suite";
+    echo "Running test suite";
     ./Build/runTests.sh;
