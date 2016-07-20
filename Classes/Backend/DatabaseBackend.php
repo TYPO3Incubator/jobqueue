@@ -130,7 +130,7 @@ class DatabaseBackend implements BackendInterface
      */
     public function count($queue)
     {
-        return $this->queryBuilder->count('*')
+        return $this->connectionPool->getQueryBuilderForTable($this->tableName)->count('*')
             ->from($this->tableName)
             ->where(
                 $this->queryBuilder->expr()->eq('queue', $this->connection->quote($queue)),
