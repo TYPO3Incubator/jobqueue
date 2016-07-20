@@ -70,9 +70,9 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
 
         if(!isset($options['ssl'])) {
-            $this->connection = new AMQPSSLConnection($options['host'], $options['port'], $options['user'], $options['password'], $options['vhost'], $options['ssl']);
-        } else {
             $this->connection = new AMQPStreamConnection($options['host'], $options['port'], $options['user'], $options['password'], $options['vhost']);
+        } else {
+            $this->connection = new AMQPSSLConnection($options['host'], $options['port'], $options['user'], $options['password'], $options['vhost'], $options['ssl']);
         }
         $this->identifier = $options['identifier'];
         $this->channel = $this->connection->channel();
@@ -181,7 +181,7 @@ class AmqpBackend implements BackendInterface, QueueListener
             $this->channel->wait(null, $blocking);
         } else {
             // @todo make it work!
-            $this->channel->wait(null, false, 1);
+            $this->channel->wait(null, false, 0);
             call_user_func($callable);
         }
     }
@@ -262,7 +262,7 @@ class AmqpBackend implements BackendInterface, QueueListener
                 return (int) $result[1];
             }
         }
-        return 1;
+        return 0;
     }
 
     /*
