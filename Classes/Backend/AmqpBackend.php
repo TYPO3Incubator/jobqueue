@@ -76,6 +76,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         }
         $this->identifier = $options['identifier'];
         $this->channel = $this->connection->channel();
+        $this->channel->confirm_select();
         /** @var \TYPO3\CMS\Core\Log\LogManager $logManager */
         $logManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class);
         /** @var \Psr\Log\LoggerInterface $logger */
@@ -100,6 +101,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         $msg = new \PhpAmqpLib\Message\AMQPMessage(json_encode($message), ['delivery_mode' => \PhpAmqpLib\Message\AMQPMessage::DELIVERY_MODE_PERSISTENT]);
         list($exchange, $routing) = $this->getPublishInformation($queue);
         $this->channel->basic_publish($msg, $exchange, $routing);
+        $this->channel->wait_for_pending_acks();
     }
 
     /**
@@ -205,6 +207,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         list($exchange, $routing) = $this->getPublishInformation($queue);
         $msg = $this->buildAMQPMessage($message);
         $this->channel->basic_publish($msg, $exchange, $routing);
+        $this->channel->wait_for_pending_acks_returns();
     }
 
     /**
