@@ -192,7 +192,7 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function setMessageLimit($limit)
     {
-        $this->channel->basic_qos(0,3,true);
+        $this->channel->basic_qos(0, $limit, true);
     }
 
     
