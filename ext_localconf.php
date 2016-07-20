@@ -91,11 +91,11 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue'] = [
                 'user' => 'guest',
                 'password' => 'guest',
                 'vhost' => '/',
-                'ssl' => [
+                /*'ssl' => [
                     'cafile' => '/some/path/cacert.pem',
                     'local_cert' => '/some/path/phpcert.pem',
                     'verify_peer' => true
-                ]
+                ]*/
             ],
             'defaultQueue' => 'default',
             'exchanges' => [],
