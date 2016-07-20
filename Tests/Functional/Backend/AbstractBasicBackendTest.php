@@ -115,7 +115,7 @@ abstract class AbstractBasicBackendTest extends \TYPO3Incubator\Jobqueue\Tests\F
         // update message values
         $newExecTime = time();
         $message->setAttempts($message->getAttempts()+1);
-        $message->setNextExecution($nextExec);
+        $message->setNextExecution($newExecTime);
         // update the message specified
         $this->subject->update($message);
         unset($message);
