@@ -40,6 +40,7 @@ class Message implements \JsonSerializable
     {
         $this->handler = $handler;
         $this->data = $data;
+        $this->nextExecution = time();
     }
 
     public function getHandler()
