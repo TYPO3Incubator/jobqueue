@@ -49,4 +49,8 @@ foreach($symlinks as $fileOrFolder) {
 }
 
 
-require dirname(__DIR__) . '/../vendor/typo3/cms/typo3/sysext/core/Build/FunctionalTestsBootstrap.php';
+$coreBootstrap = dirname(__DIR__) . '/vendor/typo3/cms/typo3/sysext/core/Build/FunctionalTestsBootstrap.php';
+if(!is_file($coreBootstrap)) {
+    exit(1);
+}
+require $coreBootstrap;
