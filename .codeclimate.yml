@@ -1,8 +1,9 @@
 engines:
   phpmd:
     enabled: true
-  phpcodesniffer:
-    enabled: true
+    checks:
+      Naming/ShortVariable CleanCode/BooleanArgumentFlag CleanCode/StaticAccess UnusedFormalParameter:
+        enabled: false
   duplication:
       enabled: true
       config:
