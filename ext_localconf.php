@@ -3,55 +3,6 @@ if (!defined('TYPO3_MODE')) {
     die ('Access denied.');
 }
 
-if (TYPO3_MODE === 'BE') {
-
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['GLOBAL']['cliKeys']['jobqueue:work'] = array(
-        function() {
-            $cliController = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3Incubator\Jobqueue\Cli\WorkController::class);
-            $cliController->run();
-        },
-        '_CLI_lowlevel'
-    );
-
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['GLOBAL']['cliKeys']['sleep'] = array(
-        function() {
-            $logM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class);
-            /** @var \Psr\Log\LoggerInterface $logger */
-            $logger = $logM->getLogger(\TYPO3Incubator\Jobqueue\QueueManager::class);
-            declare(ticks=1) {
-                $cb = function($signo) use ($logger) {
-                    $logger->debug('from '.posix_getpid().': got signal: '.$signo);
-                    if($signo == 30) {
-                        fwrite(STDERR,'aborting');
-                        exit();
-                    }
-                };
-                pcntl_signal(30, $cb, false);
-                pcntl_signal(SIGINT, $cb, false);
-                pcntl_signal(SIGUSR1, $cb, false);
-                pcntl_signal(SIGTERM, $cb, false);
-                $json = fgets(STDIN);
-                $data = json_decode($json);
-                $duration = (int) $data->duration;
-                #$logger->debug("sleeping for $duration seconds ", ['set' => $set]);
-                usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);usleep(1000000);
-                fwrite(STDOUT, 'done');
-            }
-        },
-        '_CLI_lowlevel'
-    );
-
-    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['GLOBAL']['cliKeys']['jobqueue:listen'] = array(
-        function() {
-            #`export XDEBUG_CONFIG=""`;
-            $cliController = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3Incubator\Jobqueue\Cli\ListenController::class);
-            $cliController->run();
-        },
-        '_CLI_lowlevel'
-    );
-
-}
-
 /**
  * Temp Debugging Log Configuration
  */
@@ -108,7 +59,6 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue'] = [
         ]
     ]
 ];
-
 
 \TYPO3\CMS\Extbase\Utility\ExtensionUtility::configurePlugin(
     'TYPO3Incubator.Jobqueue',
