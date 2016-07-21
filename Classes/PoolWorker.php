@@ -79,14 +79,14 @@ class PoolWorker
         $this->processPool = $this->objectManager->get(ProcessPool::class, $limit);
         $this->processPool->setProcessFinishedCallback([$this, 'onProcessFinished']);
         $this->useSignals = $useSignals;
-        if($this->useSignals === true) {
+        if ($this->useSignals === true) {
             Utility::applySignalHandling([SIGCHLD], [$this->processPool, 'externalTick']);
         }
         /** @var \TYPO3\CMS\Core\Log\LogManager $logM */
         $logM = $this->objectManager->get(\TYPO3\CMS\Core\Log\LogManager::class);
         $this->logger = $logM->getLogger(__CLASS__);
         $childProcessArgs = [PATH_typo3 . 'sysext/core/bin/typo3', '--mode=p', '--nosig', 'jobqueue:work'];
-        if($this->useSignals === true) {
+        if ($this->useSignals === true) {
             unset($childProcessArgs[2]);
         }
         $this->processBuilder = new \Symfony\Component\Process\ProcessBuilder($childProcessArgs);
@@ -101,9 +101,9 @@ class PoolWorker
         $this->logger->debug('onProcessFinished');
         // find the RunningJob which belongs to this process
         $rj = null;
-        foreach($this->runningJobs as $runningJob) {
+        foreach ($this->runningJobs as $runningJob) {
             /** @var RunningJob $runningJob */
-            if($runningJob->getProcess() === $process) {
+            if ($runningJob->getProcess() === $process) {
                 $this->logger->debug('found the running job for finished process');
                 $rj = $runningJob;
                 $this->logger->debug('detaching from local storage');
@@ -111,12 +111,12 @@ class PoolWorker
                 break;
             }
         }
-        if($rj instanceof RunningJob) {
+        if ($rj instanceof RunningJob) {
             $this->logger->debug('handling output');
             $this->handleProcessOutput($rj->getProcess()->getOutput(), $rj->getMessage());
             unset($rj);
             $this->logger->debug('cleanup done');
-            $this->logger->debug('handled messages '.++$this->processedJobs);
+            $this->logger->debug('handled messages ' . ++$this->processedJobs);
             return;
         }
     }
@@ -129,22 +129,22 @@ class PoolWorker
     {
         $result = json_decode($output, true);
         // invalid output
-        if($result === null) {
+        if ($result === null) {
             // shutdown initiated
-            if($this->running === false) {
+            if ($this->running === false) {
                 // we have invalid output because we killed our child process -> simple requeue
                 $this->logger->debug('simple requeue. we killed our child for shutdown');
                 $this->connection->update($msg);
             } else {
                 // we have invalid output because of some other error -> increment attempts and requeu
                 $this->logger->debug('invalid output. attempts + 1 and requeue');
-                $this->logger->debug('output: '.var_export($output, true));
-                $msg->setAttempts($msg->getAttempts()+1);
+                $this->logger->debug('output: ' . var_export($output, true));
+                $msg->setAttempts($msg->getAttempts() + 1);
                 $this->connection->update($msg);
             }
             return;
         }
-        switch($result['action']) {
+        switch ($result['action']) {
             case 'requeue':
                 $nextexecution = (!empty($result['nextexecution'])) ? $result['nextexecution'] : time();
                 $attempts = (!empty($result['attempts'])) ? $result['attempts'] : time();
@@ -159,7 +159,7 @@ class PoolWorker
                 break;
             default:
                 $this->logger->debug('unknown action');
-                $this->logger->debug('output: '.$output);
+                $this->logger->debug('output: ' . $output);
                 break;
         }
     }
@@ -174,7 +174,7 @@ class PoolWorker
         // update our process pool
         $this->processPool->externalTick();
         // if we can start a new process we will do so
-        if($this->processPool->canRunProcess()) {
+        if ($this->processPool->canRunProcess()) {
             // build our process
             $process = $this->processBuilder->getProcess();
             // add the data
@@ -186,12 +186,12 @@ class PoolWorker
             // refresh the pool, maybe a process finished during our setup
             $this->processPool->externalTick();
         }
-        if(! $this->processPool->canRunProcess()) {
+        if (!$this->processPool->canRunProcess()) {
             // we received a message and added it to the pool -> if the pool is busy we will stop our listener and wait
             // for our process pool to be ready to run jobs again
             $this->logger->debug('stopListening please?');
             // AMQP Backend is limited anyways
-            if($this->connection instanceof \TYPO3Incubator\Jobqueue\Backend\FallbackListener) {
+            if ($this->connection instanceof \TYPO3Incubator\Jobqueue\Backend\FallbackListener) {
                 $this->connection->stopListening($this->queue);
             }
             $this->listening = false;
@@ -205,18 +205,18 @@ class PoolWorker
     public function run()
     {
         $this->connection->startListening($this->queue, [$this, 'onMessageReceived']);
-        while($this->running) {
+        while ($this->running) {
             // manually force signal dispatching inside main loop
-            if($this->useSignals === true) {
+            if ($this->useSignals === true) {
                 pcntl_signal_dispatch();
             }
             $this->processPool->externalTick();
-            if($this->listening) {
+            if ($this->listening) {
                 // if our pool is busy atm it makes no sense to wait for a new job.
-                if($this->processPool->canRunProcess()) {
+                if ($this->processPool->canRunProcess()) {
                     // if we can run another process but the pool has running processes
                     // -> we make a non blocking wait call
-                    if($this->processPool->hasRunningProcesses()) {
+                    if ($this->processPool->hasRunningProcesses()) {
                         $this->wait();
                     } else {
                         // no actively running processes. make a blocking wait call!
@@ -231,7 +231,7 @@ class PoolWorker
                 usleep(100000);
                 $this->processPool->externalTick();
                 // go back into listen mode if a process has finished
-                if($this->processPool->canRunProcess()) {
+                if ($this->processPool->canRunProcess()) {
                     $this->listening = true;
                     $this->connection->startListening($this->queue, [$this, 'onMessageReceived']);
                 }
@@ -241,26 +241,28 @@ class PoolWorker
 
     protected function wait($blocking = false)
     {
-        $cb = ($this->useSignals === true) ? function(){pcntl_signal_dispatch();} : null;
+        $cb = ($this->useSignals === true) ? function () {
+            pcntl_signal_dispatch();
+        } : null;
         $this->connection->wait($blocking, $cb);
     }
 
     public function shutdown($graceful = false)
     {
-        $this->logger->debug('entering shutdown. graceful: '.var_export($graceful, true));
+        $this->logger->debug('entering shutdown. graceful: ' . var_export($graceful, true));
         $this->listening = false;
         $this->connection->stopListening($this->queue);
         $this->running = false;
         // amqp does not support graceful...
-        if($this->connection instanceof \TYPO3Incubator\Jobqueue\Backend\AmqpBackend) {
+        if ($this->connection instanceof \TYPO3Incubator\Jobqueue\Backend\AmqpBackend) {
             $graceful = false;
         }
-        if($graceful === false) {
+        if ($graceful === false) {
             // we kill our childs and requeue the currently running jobs
             // initiateShutdown is blocking. Callback for handling output is then processed by ticking the pool
             $this->logger->debug('entering kill mode');
             $this->processPool->initiateShutdown(false);
-            while($this->runningJobs->count() > 0) {
+            while ($this->runningJobs->count() > 0) {
                 $this->processPool->externalTick();
             }
             $this->logger->debug('chils killed. exiting...');
@@ -268,7 +270,7 @@ class PoolWorker
         } else {
             $this->logger->debug('gracefully waiting for child processes to finish');
             // we simply wait for the current jobs to be finished and then exit
-            while($this->processPool->hasRunningProcesses()) {
+            while ($this->processPool->hasRunningProcesses()) {
                 usleep(1000);
                 $this->processPool->externalTick();
             }

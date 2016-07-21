@@ -54,7 +54,7 @@ class DatabaseBackend implements BackendInterface
         $this->connection = $this->connectionPool->getConnectionForTable($this->tableName);
         $this->queue = $options['queue'];
     }
-    
+
 
     /**
      * @param string $queue
@@ -65,7 +65,8 @@ class DatabaseBackend implements BackendInterface
     {
         $values = $this->defaultValues;
         $values['queue'] = $queue;
-        \TYPO3\CMS\Core\Utility\ArrayUtility::mergeRecursiveWithOverrule($values, $this->getValuesFromMessage($message));
+        \TYPO3\CMS\Core\Utility\ArrayUtility::mergeRecursiveWithOverrule($values,
+            $this->getValuesFromMessage($message));
         $this->queryBuilder->insert($this->tableName)->values($values)->execute();
         $uid = $this->connection->lastInsertId();
         $message->setMeta('db.uid', $uid);
@@ -92,11 +93,11 @@ class DatabaseBackend implements BackendInterface
             )
             ->execute()
             ->fetch();
-        if($row === false || $row === null) {
+        if ($row === false || $row === null) {
             return null;
         }
         $msg = $this->getMessageFromRow($row);
-        if($lock === true) {
+        if ($lock === true) {
             $this->lockRecord($row['uid']);
         }
         return $msg;
@@ -158,12 +159,10 @@ class DatabaseBackend implements BackendInterface
     }
 
 
-
-
     protected function getUidFromMessage(\TYPO3Incubator\Jobqueue\Message $message)
     {
         $uid = $message->getMeta('db.uid', null);
-        if($uid === null) {
+        if ($uid === null) {
             throw new \InvalidArgumentException('this message was not retrieved through the database backend');
         }
         return $uid;
@@ -210,5 +209,5 @@ class DatabaseBackend implements BackendInterface
     {
         return $this->queryBuilder->insert($this->tableName);
     }
-    
+
 }

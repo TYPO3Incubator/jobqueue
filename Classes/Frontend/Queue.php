@@ -1,5 +1,6 @@
 <?php
 namespace TYPO3Incubator\Jobqueue\Frontend;
+
 class Queue
 {
 
@@ -50,11 +51,11 @@ class Queue
 
     protected function buildMessage($handler, $data, $delay)
     {
-        if(! \TYPO3Incubator\Jobqueue\Utility::validHandler($handler)) {
+        if (!\TYPO3Incubator\Jobqueue\Utility::validHandler($handler)) {
             throw new \InvalidArgumentException("invalid handler reference '{$handler}'");
         }
         $nextExecution = time();
-        if($delay !== 0) {
+        if ($delay !== 0) {
             $nextExecution += $delay;
         }
         return (new \TYPO3Incubator\Jobqueue\Message($handler, $data))

@@ -55,7 +55,7 @@ class Message implements \JsonSerializable
 
     public function getMeta($key = null, $default = null)
     {
-        if($key !== null) {
+        if ($key !== null) {
             return isset($this->meta[$key]) ? $this->meta[$key] : $default;
         }
         return $this->meta;

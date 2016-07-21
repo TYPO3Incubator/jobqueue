@@ -48,7 +48,7 @@ class ProcessPool
     {
         $this->runningProcesses = new \SplObjectStorage();
         $this->queuedProcesses = new \SplObjectStorage();
-        $this->limit = (int) $limit;
+        $this->limit = (int)$limit;
         $this->queueing = $queueing;
         $this->running = true;
         $logM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class);
@@ -71,14 +71,14 @@ class ProcessPool
 
     public function run(\Symfony\Component\Process\Process $process)
     {
-        if($this->running) {
+        if ($this->running) {
             $this->updateRunningProcesses();
-            if($this->canRunProcess()) {
+            if ($this->canRunProcess()) {
                 $this->logger->debug('can run process directly');
                 $this->runningProcesses->attach($process);
                 $process->start();
             } else {
-                if($this->queueing === true) {
+                if ($this->queueing === true) {
                     $this->logger->debug('pool busy ... queueing process');
                     $this->queuedProcesses->attach($process);
                 } else {
@@ -95,10 +95,10 @@ class ProcessPool
     {
         #$this->logger->debug('external tick received');
         $this->updateRunningProcesses();
-        if($this->running === false) {
+        if ($this->running === false) {
             return;
         }
-        while($this->canRunProcess() && $this->hasQueuedProcesses()) {
+        while ($this->canRunProcess() && $this->hasQueuedProcesses()) {
             #$this->logger->debug('running queued process');
             // make sure we are at the beginning
             $this->queuedProcesses->rewind();
@@ -119,7 +119,7 @@ class ProcessPool
     public function getRunningProcessesInfo()
     {
         $info = [];
-        foreach($this->runningProcesses as $k => $p) {
+        foreach ($this->runningProcesses as $k => $p) {
             $info[] = [
                 'pid' => $p->getPid(),
                 'status' => $p->getStatus()
@@ -143,20 +143,20 @@ class ProcessPool
     {
         $this->logger->debug('shutdown initiated!');
         $this->running = false;
-        if($graceful === true) {
+        if ($graceful === true) {
             $this->logger->debug('gracefully sending signal to child processes');
-            foreach($this->runningProcesses as $process) {
+            foreach ($this->runningProcesses as $process) {
                 /** @var $process \Symfony\Component\Process\Process */
-                if($process->isRunning()) {
+                if ($process->isRunning()) {
                     $pid = $process->getPid();
-                    $this->logger->debug($pid.' sending SIGUSR1');
+                    $this->logger->debug($pid . ' sending SIGUSR1');
                     #$process->stop(2, SIGUSR1);
                     $process->signal(30);
                 }
             }
         } else {
             $this->logger->debug('killing childs');
-            foreach($this->runningProcesses as $process) {
+            foreach ($this->runningProcesses as $process) {
                 /** @var $process \Symfony\Component\Process\Process */
                 $process->stop(2);
             }
@@ -170,11 +170,11 @@ class ProcessPool
 
     protected function updateRunningProcesses()
     {
-        foreach($this->runningProcesses as $process) {
+        foreach ($this->runningProcesses as $process) {
             /** @var $process \Symfony\Component\Process\Process */
-            if(!$process->isRunning()) {
+            if (!$process->isRunning()) {
                 #$this->logger->debug('detaching finished process', array('stdout' => $process->getOutput(), 'stderr' => $process->getErrorOutput()));
-                if(is_callable($this->processDoneCallback)) {
+                if (is_callable($this->processDoneCallback)) {
                     call_user_func($this->processDoneCallback, $process);
                 }
                 $this->runningProcesses->detach($process);

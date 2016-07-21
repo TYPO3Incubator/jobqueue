@@ -4,7 +4,7 @@
         <header/>
         <body>
         <trans-unit id="headline">
-                <source>FLUID sucks big time!</source>
+                <source>Queue demo tasks</source>
             </trans-unit>
         <trans-unit id="form-backend">
                 <source>Queueing Backend</source>

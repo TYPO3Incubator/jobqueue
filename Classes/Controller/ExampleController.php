@@ -15,10 +15,10 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
      * @var array
      */
     protected $handlerArguments = [
-        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class.'->sleep' => [
+        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->sleep' => [
             'duration' => 'int'
         ],
-        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class.'->resize' => [
+        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->resize' => [
             'image' => 'file'
         ]
     ];
@@ -33,7 +33,7 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
     {
         $backends = $this->getBackends();
         $handlers = [];
-        foreach($this->handlerArguments as $key => $value) {
+        foreach ($this->handlerArguments as $key => $value) {
             $handlers[$key] = $key;
         }
         $this->view->assign('backends', $backends);
@@ -52,23 +52,24 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
         $qm = $this->objectManager->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
         $queueInterface = $qm->get($backend);
         $data = $this->getHandlerData($handler);
-        if($handler !== \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class.'->resize') {
+        if ($handler !== \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->resize') {
             for ($x = 0; $x < $count; $x++) {
                 $queueInterface->setQueue($queue)->queue($handler, $data);
             }
         } else {
             $sizes = [];
-            for($i = 100; $i <= 800; $i += 10) {
+            for ($i = 100; $i <= 800; $i += 10) {
                 $sizes[] = [$i, $i];
             }
-            foreach($sizes as $dimensions) {
+            foreach ($sizes as $dimensions) {
                 $fData = $data;
                 $fData['width'] = $dimensions[0];
                 $fData['height'] = $dimensions[1];
                 $queueInterface->setQueue($queue)->queue($handler, $fData);
             }
         }
-        $this->addFlashMessage('Added the handler '.$handler.' to the queue '.$queue.' '.$count.' times', 'Queuing Info');
+        $this->addFlashMessage('Added the handler ' . $handler . ' to the queue ' . $queue . ' ' . $count . ' times',
+            'Queuing Info');
         $this->redirect('index');
     }
 
@@ -77,7 +78,7 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
      */
     public function infoAction()
     {
-        if($this->request->hasArgument('backend') && $this->request->hasArgument('queue')) {
+        if ($this->request->hasArgument('backend') && $this->request->hasArgument('queue')) {
             $backendIdentifier = $this->request->getArgument('backend');
             $queue = $this->request->getArgument('queue');
             /** @var \TYPO3Incubator\Jobqueue\QueueManager $qm */
@@ -91,9 +92,9 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
                 'count' => $backend->count($queue)
             ]);
         }
-        
+
         $this->view->assign('backends', $this->getBackends());
-        
+
     }
 
     protected function getBackends()
@@ -106,8 +107,8 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
         #$msg = $queue->get('internal');
         #$queue->setQueue('internal')->queue(\TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class.'->sleep', ['duration' => 3], 0);
         //-> tmp
-        if(isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'])) {
-            foreach($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'] as $key => $val) {
+        if (isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'])) {
+            foreach ($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'] as $key => $val) {
                 $backends[$key] = $key;
                 try {
                     $qm->get($key);
@@ -122,20 +123,22 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
     protected function getHandlerData($handler)
     {
         $data = [];
-        if(isset($this->handlerArguments[$handler])) {
-            foreach($this->handlerArguments[$handler] as $key => $type) {
+        if (isset($this->handlerArguments[$handler])) {
+            foreach ($this->handlerArguments[$handler] as $key => $type) {
                 $value = $this->request->getArgument($key);
-                switch($type) {
+                switch ($type) {
                     case 'int':
-                        $data[$key] = (int) $value;
+                        $data[$key] = (int)$value;
                         break;
                     case 'file':
-                        if(is_array($value) && !empty($value['name']) && !empty($value['tmp_name'])) {
+                        if (is_array($value) && !empty($value['name']) && !empty($value['tmp_name'])) {
                             /** @var \TYPO3\CMS\Core\Resource\StorageRepository $storageRepo */
                             $storageRepo = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\StorageRepository::class);
                             // use default storage for now (fileadmin)
                             $resourceStorage = $storageRepo->findByUid(1);
-                            if(! $resourceStorage->hasFolderInFolder('tx_jobqueue', $resourceStorage->getRootLevelFolder())) {
+                            if (!$resourceStorage->hasFolderInFolder('tx_jobqueue',
+                                $resourceStorage->getRootLevelFolder())
+                            ) {
                                 $resourceStorage->createFolder('tx_jobqueue');
                             }
                             $folder = $resourceStorage->getFolder('tx_jobqueue');

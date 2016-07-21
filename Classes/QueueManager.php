@@ -17,17 +17,17 @@ class QueueManager implements SingletonInterface
      * @throws \TYPO3\CMS\Core\Resource\Exception\InvalidConfigurationException
      * @throws \RuntimeException
      */
-    public function get($identifier) 
+    public function get($identifier)
     {
-        if($this->isQueueDefined($identifier) === false) {
+        if ($this->isQueueDefined($identifier) === false) {
             throw new \InvalidArgumentException("No queue configuration set for '{$identifier}'");
         }
-        if(! isset($this->initializedBackends[$identifier])) {
+        if (!isset($this->initializedBackends[$identifier])) {
             $conf = &$GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'][$identifier];
             $backend = $conf['backend'];
             $options = $conf['options'];
             $defaultQueue = $conf['defaultQeueue'];
-            if(!class_exists($backend)) {
+            if (!class_exists($backend)) {
                 throw new \TYPO3\CMS\Core\Resource\Exception\InvalidConfigurationException("The configured backend class '{$backend}' does not exist!");
             }
             try {

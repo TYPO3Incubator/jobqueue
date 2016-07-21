@@ -44,11 +44,16 @@ class WorkCommand extends Command
     protected function configure()
     {
         $this->setDescription('Queue worker');
-        $this->addArgument('connection', \Symfony\Component\Console\Input\InputArgument::OPTIONAL, 'Name of the connection to use');
-        $this->addArgument('queue', \Symfony\Component\Console\Input\InputArgument::OPTIONAL, 'Name of the queue to work on');
-        $this->addOption('mode', null, \Symfony\Component\Console\Input\InputOption::VALUE_REQUIRED, 'worker mode. s for standalone and p for piped mode');
-        $this->addOption('nosig', null, \Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Disables signal handling');
-        $this->addOption('num', null, \Symfony\Component\Console\Input\InputOption::VALUE_OPTIONAL, 'Number of jobs to process if run in standalone mode', 1);
+        $this->addArgument('connection', \Symfony\Component\Console\Input\InputArgument::OPTIONAL,
+            'Name of the connection to use');
+        $this->addArgument('queue', \Symfony\Component\Console\Input\InputArgument::OPTIONAL,
+            'Name of the queue to work on');
+        $this->addOption('mode', null, \Symfony\Component\Console\Input\InputOption::VALUE_REQUIRED,
+            'worker mode. s for standalone and p for piped mode');
+        $this->addOption('nosig', null, \Symfony\Component\Console\Input\InputOption::VALUE_NONE,
+            'Disables signal handling');
+        $this->addOption('num', null, \Symfony\Component\Console\Input\InputOption::VALUE_OPTIONAL,
+            'Number of jobs to process if run in standalone mode', 1);
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
@@ -57,26 +62,29 @@ class WorkCommand extends Command
         $this->mode = $input->getOption('mode');
         $availableModes = [self::MODE_PIPED, self::MODE_STANDALONE];
 
-        if(!in_array($this->mode, $availableModes)) {
-            throw new \InvalidArgumentException('Worker mode must be one of '.implode(', ', $availableModes).'. '.$this->mode.' given.');
+        if (!in_array($this->mode, $availableModes)) {
+            throw new \InvalidArgumentException('Worker mode must be one of ' . implode(', ',
+                    $availableModes) . '. ' . $this->mode . ' given.');
         }
         $this->queue = $input->getArgument('queue');
         $this->connectionArgument = $input->getArgument('connection');
         $nosig = $input->getOption('nosig');
 
-        if($nosig === false) {
-            declare(ticks=1);
-            \TYPO3Incubator\Jobqueue\Utility::applySignalHandling([SIGTERM, SIGQUIT, SIGHUP, SIGINT, SIGQUIT], function($sig){});
+        if ($nosig === false) {
+            declare(ticks = 1);
+            \TYPO3Incubator\Jobqueue\Utility::applySignalHandling([SIGTERM, SIGQUIT, SIGHUP, SIGINT, SIGQUIT],
+                function ($sig) {
+                });
         }
 
         $this->objM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
 
-        if($this->mode === self::MODE_STANDALONE) {
+        if ($this->mode === self::MODE_STANDALONE) {
             $this->runStandalone();
             exit;
         } else {
             $result = $this->runPiped();
-            if(is_string($result)) {
+            if (is_string($result)) {
                 $output->write($result);
                 exit;
             }
@@ -101,12 +109,12 @@ class WorkCommand extends Command
         $this->queueManager = $this->objM->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
         $this->connection = $this->queueManager->getBackend($this->connectionArgument);
         $message = $this->connection->get($this->queue);
-        if($message instanceof \TYPO3Incubator\Jobqueue\Message) {
+        if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
             $job = $this->processMessage($message);
-            if($job->isReleased()) {
+            if ($job->isReleased()) {
                 $this->connection->update($message);
             }
-            if($job->isDeleted()) {
+            if ($job->isDeleted()) {
                 $this->connection->remove($message);
             }
         }
@@ -115,19 +123,19 @@ class WorkCommand extends Command
     protected function runPiped()
     {
         $message = \TYPO3Incubator\Jobqueue\Utility::parseMessage();
-        if($message instanceof \TYPO3Incubator\Jobqueue\Message) {
+        if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
             $job = $this->processMessage($message);
             $result = [
                 'action' => ''
             ];
 
-            if($job->isReleased()) {
+            if ($job->isReleased()) {
                 $result['action'] = 'requeue';
                 $result['nextexecution'] = $message->getNextExecution();
                 $result['attempts'] = $message->getAttempts();
             }
 
-            if($job->isDeleted()) {
+            if ($job->isDeleted()) {
                 $result['action'] = 'delete';
             }
             return json_encode($result);

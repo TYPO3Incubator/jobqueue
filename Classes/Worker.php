@@ -21,16 +21,16 @@ class Worker
     public function run()
     {
         $handler = $this->message->getHandler();
-        if (! \TYPO3Incubator\Jobqueue\Utility::isStaticMethodHandler($handler)) {
+        if (!\TYPO3Incubator\Jobqueue\Utility::isStaticMethodHandler($handler)) {
             $handler = \TYPO3Incubator\Jobqueue\Utility::extractHandlerClassAndMethod($handler);
         }
 
-        if(is_array($handler)) {
+        if (is_array($handler)) {
             $obj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance($handler['class']);
             $handler = [$obj, $handler['method']];
         }
 
-        $this->message->setAttempts($this->message->getAttempts()+1);
+        $this->message->setAttempts($this->message->getAttempts() + 1);
         $job = new Job($this->message);
 
         try {
@@ -48,6 +48,6 @@ class Worker
 
         return $job;
     }
-    
-    
+
+
 }

@@ -39,7 +39,7 @@ class Job
      */
     public function release($delay = 0)
     {
-        $this->message->setNextExecution(time()+$delay);
+        $this->message->setNextExecution(time() + $delay);
         $this->state = self::STATE_RELEASED;
     }
 

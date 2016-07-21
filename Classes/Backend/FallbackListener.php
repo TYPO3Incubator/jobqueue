@@ -21,7 +21,7 @@ class FallbackListener implements QueueListener, BackendInterface
      * @var callable
      */
     protected $cb;
-    
+
     /**
      * FallbackListener constructor.
      * @param BackendInterface $backend
@@ -58,21 +58,21 @@ class FallbackListener implements QueueListener, BackendInterface
      */
     public function wait($blocking = false, $callable = null)
     {
-        if($this->queue === null) {
+        if ($this->queue === null) {
             // we stopped listening
             return;
         }
         $msg = $this->getMessage();
-        if($blocking === true) {
-            while($msg === null) {
+        if ($blocking === true) {
+            while ($msg === null) {
                 usleep(100000);
-                if($callable !== null) {
+                if ($callable !== null) {
                     call_user_func($callable);
                 }
                 $msg = $this->getMessage();
             }
         }
-        if($msg instanceof Message) {
+        if ($msg instanceof Message) {
             call_user_func($this->cb, $msg);
         }
     }
