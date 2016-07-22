@@ -126,6 +126,14 @@ class AmqpBackend implements BackendInterface, QueueListener
             $msg = $this->buildMessage($message);
             if ($msg instanceof \TYPO3Incubator\Jobqueue\Message) {
                 $msg->setMeta('amqp.queue', $queue);
+                /*
+                if lock = false the message should be ready again right away. therefore we simpyl nack it
+                */
+                if($lock === false) {
+                    $deliveryTag = $msg->getMeta('amqp.delivery_tag', null);
+                    $this->channel->basic_nack($deliveryTag, false, true);
+                    $this->channel->wait_for_pending_acks_returns();
+                }
                 return $msg;
             }
         }
