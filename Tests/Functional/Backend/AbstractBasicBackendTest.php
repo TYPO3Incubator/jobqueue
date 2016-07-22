@@ -81,6 +81,10 @@ abstract class AbstractBasicBackendTest extends \TYPO3Incubator\Jobqueue\Tests\F
      */
     public function testMessageLifeCycle()
     {
+        // ensure we are testing on empty queues
+        $this->cleanQueue('default');
+        $this->cleanQueue('failed');
+
         // queue should be empty
         $this->assertEquals($this->subject->get('default'), null, 'returns null since queue is empty');
 
@@ -129,6 +133,28 @@ abstract class AbstractBasicBackendTest extends \TYPO3Incubator\Jobqueue\Tests\F
 
         // cleanup, remove record from queue
         $this->subject->remove($message);
+
+        // test failure handling
+        $nextExec = time();
+        $newMessage = $this->createMessage();
+        $newMessage->setNextExecution($nextExec);
+        $this->subject->add('default', $newMessage);
+
+        $message = $this->subject->get('default');
+
+        $this->assertEquals($message instanceof \TYPO3Incubator\Jobqueue\Message, true, 'we got a message');
+
+        $this->subject->failed($message);
+
+        // our failed queue should now have 1 message
+        $this->assertEquals($this->subject->count('failed'), 1, 'we got a message');
+
+        // fetch that message
+        $message = $this->subject->get('failed');
+        $this->assertEquals($message instanceof \TYPO3Incubator\Jobqueue\Message, true, 'we got a message');
+        // remove it
+        $this->subject->remove($message);
+        $this->assertEquals($this->subject->count('failed'), 0, 'no remaining failed messages');
 
     }
 
