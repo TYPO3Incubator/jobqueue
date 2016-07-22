@@ -61,6 +61,41 @@ abstract class AbstractBasicBackendTest extends \TYPO3Incubator\Jobqueue\Tests\F
     }
 
     /**
+     * @test
+     */
+    public function testMessageLocking()
+    {
+        // make sure we have a clean queue and add 5 fresh messages
+        $this->cleanQueue('default');
+        for($i = 0; $i < 5; $i++) {
+            $message = $this->createMessage();
+            $message->setNextExecution(time());
+            $this->subject->add('default', $message);
+        }
+        // count should be 5
+        $this->assertEquals(5, $this->subject->count('default'), '5 messages are ready to be processed');
+
+        // get 1 message
+        $message = $this->subject->get('default', true);
+        $this->assertEquals(true, $message instanceof \TYPO3Incubator\Jobqueue\Message, 'got a message');
+
+        // count should be 4
+        $this->assertEquals(4, $this->subject->count('default'), '4 messages are ready to be processed');
+        $this->subject->update($message);
+
+        // count should be 5 again
+        $this->assertEquals(5, $this->subject->count('default'), 'message was released and 5 messages are ready to be processed');
+
+        // get a message without lock
+        $message = $this->subject->get('default', false);
+        $this->assertEquals(true, $message instanceof \TYPO3Incubator\Jobqueue\Message, 'got a message');
+
+        // count should still be 5
+        $this->assertEquals(5, $this->subject->count('default'), 'message was retrieved without lock');
+
+    }
+
+    /**
      * @return array
      */
     public function testQueueCountDataProvider()
