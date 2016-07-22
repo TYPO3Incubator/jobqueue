@@ -66,6 +66,12 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     protected $logger;
 
+    /**
+     * @var bool
+     */
+    protected $listenMessageReceived = false;
+
+
     public function __construct($options)
     {
 
@@ -134,6 +140,7 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
         $msg = $this->buildMessage($message);
         if ($msg instanceof \TYPO3Incubator\Jobqueue\Message) {
+            $this->listenMessageReceived = true;
             $msg->setMeta('amqp.delivery_tag', $message->delivery_info['delivery_tag']);
             $msg->setMeta('amqp.queue', $this->listenQueue);
             call_user_func($this->listenCallback, $msg);
@@ -184,9 +191,20 @@ class AmqpBackend implements BackendInterface, QueueListener
         if ($callable === null) {
             $this->channel->wait(null, $blocking);
         } else {
-            // @todo make it work!
-            $this->channel->wait(null, false, 0);
-            call_user_func($callable);
+            /*
+            we could make a blocking call that waits until the broker sends us
+            sth new. but that would cause this listener not to respond to signals
+            anymore. therefor we make a non blocking wait call, dispatch pending signals
+            and sleep a little. however we will not get notice if the wait resulted in a new
+            message being delivered. for that reason we use a boolean flag which will be set
+            to true inside our callback that is fired once a message was received.
+            */
+            $this->listenMessageReceived = false;
+            while(!$this->listenMessageReceived) {
+                $this->channel->wait(null, true);
+                call_user_func($callable);
+                usleep(1000);
+            }
         }
     }
 
