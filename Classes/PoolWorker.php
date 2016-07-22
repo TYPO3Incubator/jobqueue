@@ -186,16 +186,6 @@ class PoolWorker
             // refresh the pool, maybe a process finished during our setup
             $this->processPool->externalTick();
         }
-        if (!$this->processPool->canRunProcess()) {
-            // we received a message and added it to the pool -> if the pool is busy we will stop our listener and wait
-            // for our process pool to be ready to run jobs again
-            $this->logger->debug('stopListening please?');
-            // AMQP Backend is limited anyways
-            if ($this->connection instanceof \TYPO3Incubator\Jobqueue\Backend\FallbackListener) {
-                $this->connection->stopListening($this->queue);
-            }
-            $this->listening = false;
-        }
     }
 
 
@@ -251,12 +241,7 @@ class PoolWorker
     {
         $this->logger->debug('entering shutdown. graceful: ' . var_export($graceful, true));
         $this->listening = false;
-        $this->connection->stopListening($this->queue);
         $this->running = false;
-        // amqp does not support graceful...
-        if ($this->connection instanceof \TYPO3Incubator\Jobqueue\Backend\AmqpBackend) {
-            $graceful = false;
-        }
         if ($graceful === false) {
             // we kill our childs and requeue the currently running jobs
             // initiateShutdown is blocking. Callback for handling output is then processed by ticking the pool
@@ -265,6 +250,7 @@ class PoolWorker
             while ($this->runningJobs->count() > 0) {
                 $this->processPool->externalTick();
             }
+            $this->connection->stopListening($this->queue);
             $this->logger->debug('chils killed. exiting...');
             exit();
         } else {
@@ -274,6 +260,7 @@ class PoolWorker
                 usleep(1000);
                 $this->processPool->externalTick();
             }
+            $this->connection->stopListening($this->queue);
             $this->logger->debug('child processes done. exiting...');
             exit();
         }
