@@ -142,6 +142,19 @@ class DatabaseBackend implements BackendInterface
             ->fetchColumn(0);
     }
 
+    /**
+     * @param \TYPO3Incubator\Jobqueue\Message $message
+     * @return mixed
+     */
+    public function failed($message)
+    {
+        $uid = $this->getUidFromMessage($message);
+        $values = $this->getValuesFromMessage($message);
+        $values['queue'] = 'failed';
+        $this->connection->update($this->tableName, $values, ['uid' => $uid]);
+        $this->freeRecord($uid);
+    }
+
     protected function lockRecord($uid)
     {
         $this->queryBuilder->update($this->tableName)

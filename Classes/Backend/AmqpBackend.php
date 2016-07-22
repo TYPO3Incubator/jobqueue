@@ -295,6 +295,23 @@ class AmqpBackend implements BackendInterface, QueueListener
         return 0;
     }
 
+    /**
+     * @param \TYPO3Incubator\Jobqueue\Message $message
+     * @return mixed
+     */
+    public function failed($message)
+    {
+        $deliveryTag = $message->getMeta('amqp.delivery_tag', null);
+        if($deliveryTag === null) {
+            throw new \LogicException('Looks like you are trying to dead letter an unlocked/non-exclusive message');
+        }
+        // @todo read up on pros and cons about rejecting or nacking with requeue = false
+        $this->declareQueue('failed');
+        $this->bindQueue('failed', $this->defaultExchange, $this->getDefaultRoutingKey('failed'));
+        $this->channel->basic_reject($deliveryTag, false);
+        $this->channel->wait_for_pending_acks();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | AMQO Specific Helper Functions
@@ -354,7 +371,12 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
         if (!isset($this->declaredQueues[$queue])) {
             if (!$this->queueOverrideExists($queue)) {
-                $this->channel->queue_declare($queue, false, true, false, false, true);
+                $this->channel->queue_declare($queue, false, true, false, false, true,
+                    [
+                        'x-dead-letter-exchange' => ['S', $this->defaultExchange],
+                        'x-dead-letter-routing-key' => ['S', $this->getDefaultRoutingKey('failed')]
+                    ]
+                );
                 $this->declaredQueues[$queue] = true;
             }
         }

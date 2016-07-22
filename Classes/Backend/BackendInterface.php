@@ -40,4 +40,10 @@ interface BackendInterface
      */
     public function count($queue);
 
+    /**
+     * @param \TYPO3Incubator\Jobqueue\Message $message
+     * @return mixed
+     */
+    public function failed($message);
+
 }
