@@ -59,7 +59,8 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue'] = [
                 ]
             ]
         ]
-    ]
+    ],
+    'attemptsLimit' => 5
 ];
 
 \TYPO3\CMS\Extbase\Utility\ExtensionUtility::configurePlugin(

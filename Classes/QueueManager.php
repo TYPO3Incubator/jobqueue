@@ -12,6 +12,21 @@ class QueueManager implements SingletonInterface
     protected $initializedBackends = [];
 
     /**
+     * @var array
+     */
+    protected $backendConfigs;
+
+    /**
+     * @var Configuration
+     */
+    protected $configuration;
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Object\ObjectManager
+     */
+    protected $objectManager;
+
+    /**
      * @param $identifier
      * @return \TYPO3Incubator\Jobqueue\Frontend\Queue
      * @throws \TYPO3\CMS\Core\Resource\Exception\InvalidConfigurationException
@@ -19,27 +34,10 @@ class QueueManager implements SingletonInterface
      */
     public function get($identifier)
     {
-        if ($this->isQueueDefined($identifier) === false) {
-            throw new \InvalidArgumentException("No queue configuration set for '{$identifier}'");
-        }
-        if (!isset($this->initializedBackends[$identifier])) {
-            $conf = &$GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'][$identifier];
-            $backend = $conf['backend'];
-            $options = $conf['options'];
-            $defaultQueue = $conf['defaultQeueue'];
-            if (!class_exists($backend)) {
-                throw new \TYPO3\CMS\Core\Resource\Exception\InvalidConfigurationException("The configured backend class '{$backend}' does not exist!");
-            }
-            try {
-                $options = array_merge($options, ['identifier' => $identifier]);
-                $this->initializedBackends[$identifier] = new $backend($options);
-            } catch (\Exception $e) {
-                $msg = $e->getMessage();
-                throw new \RuntimeException("The queue could not be initialized '{$msg}'");
-            }
-        }
-        // @todo defaultQeueue ...
-        return new \TYPO3Incubator\Jobqueue\Frontend\Queue($this->initializedBackends[$identifier], 'default');
+        $backend = $this->getBackend($identifier);
+        $config = $this->getBackendConfiguration($identifier);
+        $defaultQueue = (empty($config['defaultQueue'])) ? 'default' : $config['defaultQueue'];
+        return new \TYPO3Incubator\Jobqueue\Frontend\Queue($backend, $defaultQueue);
     }
 
     /**
@@ -49,18 +47,63 @@ class QueueManager implements SingletonInterface
      */
     public function getBackend($identifier)
     {
-        // @todo refactor!
-        $this->get($identifier);
+        if ($this->isBackendDefined($identifier) === false) {
+            throw new \InvalidArgumentException("No backend configuration set for '{$identifier}'");
+        }
+        if (!isset($this->initializedBackends[$identifier])) {
+            $conf = $this->getBackendConfiguration($identifier);
+            $backend = $conf['backend'];
+            $options = $conf['options'];
+            if (!class_exists($backend)) {
+                throw new \TYPO3\CMS\Core\Resource\Exception\InvalidConfigurationException("The configured backend class '{$backend}' does not exist!");
+            }
+            try {
+                $options = array_merge($options, ['identifier' => $identifier]);
+                $this->initializedBackends[$identifier] = $this->objectManager->get($backend, $options);;
+            } catch (\Exception $e) {
+                $msg = $e->getMessage();
+                throw new \RuntimeException("The queue could not be initialized '{$msg}'");
+            }
+        }
         return $this->initializedBackends[$identifier];
+    }
+
+    /**
+     * @param $identifier
+     * @return array
+     */
+    protected function getBackendConfiguration($identifier)
+    {
+        return $this->backendConfigs[$identifier];
     }
 
     /**
      * @param string $name
      * @return bool
      */
-    public function isQueueDefined($name)
+    protected function isBackendDefined($name)
     {
-        return isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'][$name]);
+        if($this->backendConfigs === null) {
+            $this->backendConfigs = $this->configuration->getBackends();
+        }
+        return isset($this->backendConfigs[$name]);
+    }
+
+
+    /**
+     * @param Configuration $configuration
+     */
+    public function injectConfiguration(Configuration $configuration)
+    {
+        $this->configuration = $configuration;
+    }
+
+    /**
+     * @param \TYPO3\CMS\Extbase\Object\ObjectManager $objectManager
+     */
+    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
     }
 
 }
