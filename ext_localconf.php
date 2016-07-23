@@ -31,7 +31,9 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue'] = [
     'configuration' => [
         'default' => [
             'backend' => \TYPO3Incubator\Jobqueue\Backend\DatabaseBackend::class,
-            'options' => [],
+            'options' => [
+                'table' => 'jobqueue_job'
+            ],
             'defaultQueue' => 'default'
         ],
         'rabbitmq' => [

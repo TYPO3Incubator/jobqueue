@@ -8,17 +8,7 @@ class DatabaseBackend implements BackendInterface
     /**
      * @var string
      */
-    protected $tableName = 'jobqueue_job';
-
-    /**
-     * @var \TYPO3\CMS\Core\Database\Query\QueryBuilder
-     */
-    protected $queryBuilder;
-
-    /**
-     * @var \TYPO3\CMS\Core\Database\Connection
-     */
-    protected $connection;
+    protected $tableName;
 
     /**
      * @var \TYPO3\CMS\Core\Database\ConnectionPool
@@ -26,14 +16,8 @@ class DatabaseBackend implements BackendInterface
     protected $connectionPool;
 
     /**
-     * @var string
+     * @var array
      */
-    protected $queue;
-
-    protected $insertQuery;
-
-    protected $selectQuery;
-
     protected $defaultValues = [
         'locked' => 0,
         'queue' => '',
@@ -48,11 +32,12 @@ class DatabaseBackend implements BackendInterface
      */
     public function __construct($options)
     {
+        if (empty($options['table'])) {
+           throw new \InvalidArgumentException('You must configure the table to use'.var_export($options, true));
+        }
         /** @var \TYPO3\CMS\Core\Database\ConnectionPool $connectionPool */
         $this->connectionPool = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Database\ConnectionPool::class);
-        $this->queryBuilder = $this->connectionPool->getQueryBuilderForTable($this->tableName);
-        $this->connection = $this->connectionPool->getConnectionForTable($this->tableName);
-        $this->queue = $options['queue'];
+        $this->tableName = $options['table'];
     }
 
 
@@ -67,8 +52,8 @@ class DatabaseBackend implements BackendInterface
         $values['queue'] = $queue;
         \TYPO3\CMS\Core\Utility\ArrayUtility::mergeRecursiveWithOverrule($values,
             $this->getValuesFromMessage($message));
-        $this->queryBuilder->insert($this->tableName)->values($values)->execute();
-        $uid = $this->connection->lastInsertId();
+        $this->getQueryBuilder()->insert($this->tableName)->values($values)->execute();
+        $uid = $this->getConnection()->lastInsertId();
         $message->setMeta('db.uid', $uid);
         $message->setMeta('db.queue', $queue);
     }
@@ -83,13 +68,12 @@ class DatabaseBackend implements BackendInterface
      */
     public function get($queue, $lock = true)
     {
-        $this->queryBuilder = $this->connectionPool->getQueryBuilderForTable($this->tableName);
-        $row = $this->queryBuilder->select('*')
+        $row = $this->getQueryBuilder()->select('*')
             ->from($this->tableName)
             ->where(
-                $this->queryBuilder->expr()->eq('queue', $this->connection->quote($queue)),
-                $this->queryBuilder->expr()->lte('nextexecution', time()),
-                $this->queryBuilder->expr()->eq('locked', 0)
+                $this->getQueryBuilder()->expr()->eq('queue', $this->getConnection()->quote($queue)),
+                $this->getQueryBuilder()->expr()->lte('nextexecution', time()),
+                $this->getQueryBuilder()->expr()->eq('locked', 0)
             )
             ->execute()
             ->fetch();
@@ -110,7 +94,7 @@ class DatabaseBackend implements BackendInterface
     public function remove($message)
     {
         $uid = $this->getUidFromMessage($message);
-        $this->connection->delete($this->tableName, ['uid' => $uid]);
+        $this->getConnection()->delete($this->tableName, ['uid' => $uid]);
     }
 
     /**
@@ -121,7 +105,7 @@ class DatabaseBackend implements BackendInterface
     {
         $uid = $this->getUidFromMessage($message);
         $values = $this->getValuesFromMessage($message);
-        $this->connection->update($this->tableName, $values, ['uid' => $uid]);
+        $this->getConnection()->update($this->tableName, $values, ['uid' => $uid]);
         $this->freeRecord($uid);
     }
 
@@ -131,12 +115,12 @@ class DatabaseBackend implements BackendInterface
      */
     public function count($queue)
     {
-        return $this->connectionPool->getQueryBuilderForTable($this->tableName)->count('*')
+        return $this->getQueryBuilder()->count('*')
             ->from($this->tableName)
             ->where(
-                $this->queryBuilder->expr()->eq('queue', $this->connection->quote($queue)),
-                $this->queryBuilder->expr()->lte('nextexecution', time()),
-                $this->queryBuilder->expr()->eq('locked', 0)
+                $this->getQueryBuilder()->expr()->eq('queue', $this->getConnection()->quote($queue)),
+                $this->getQueryBuilder()->expr()->lte('nextexecution', time()),
+                $this->getQueryBuilder()->expr()->eq('locked', 0)
             )
             ->execute()
             ->fetchColumn(0);
@@ -151,26 +135,41 @@ class DatabaseBackend implements BackendInterface
         $uid = $this->getUidFromMessage($message);
         $values = $this->getValuesFromMessage($message);
         $values['queue'] = 'failed';
-        $this->connection->update($this->tableName, $values, ['uid' => $uid]);
+        $this->getConnection()->update($this->tableName, $values, ['uid' => $uid]);
         $this->freeRecord($uid);
     }
 
     protected function lockRecord($uid)
     {
-        $this->queryBuilder->update($this->tableName)
-            ->where($this->queryBuilder->expr()->eq('uid', $uid))
+        $this->getQueryBuilder()->update($this->tableName)
+            ->where($this->getQueryBuilder()->expr()->eq('uid', $uid))
             ->set('locked', 1)
             ->execute();
     }
 
     protected function freeRecord($uid)
     {
-        $this->queryBuilder->update($this->tableName)
-            ->where($this->queryBuilder->expr()->eq('uid', $uid))
+        $this->getQueryBuilder()->update($this->tableName)
+            ->where($this->getQueryBuilder()->expr()->eq('uid', $uid))
             ->set('locked', 0)
             ->execute();
     }
 
+    /**
+     * @return \TYPO3\CMS\Core\Database\Connection
+     */
+    protected function getConnection()
+    {
+        return $this->connectionPool->getConnectionForTable($this->tableName);
+    }
+
+    /**
+     * @return \TYPO3\CMS\Core\Database\Query\QueryBuilder
+     */
+    protected function getQueryBuilder()
+    {
+        return $this->connectionPool->getQueryBuilderForTable($this->tableName);
+    }
 
     protected function getUidFromMessage(\TYPO3Incubator\Jobqueue\Message $message)
     {
@@ -202,25 +201,6 @@ class DatabaseBackend implements BackendInterface
             ->setNextExecution($row['nextexecution'])
             ->setMeta('db.uid', $row['uid'])
             ->setMeta('db.queue', $row['queue']);
-    }
-
-    /**
-     * @return \TYPO3\CMS\Core\Database\Query\QueryBuilder
-     */
-    protected function getSelectQuery()
-    {
-        return $this->queryBuilder->select('*')
-            ->from($this->tableName)
-            ->where(
-                $this->queryBuilder->expr()->eq('locked', 0),
-                $this->queryBuilder->expr()->lte('nextexecution', time())
-            )
-            ->orderBy('priority', 'ASC');
-    }
-
-    protected function getInsertQuery()
-    {
-        return $this->queryBuilder->insert($this->tableName);
     }
 
 }

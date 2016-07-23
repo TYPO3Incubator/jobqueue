@@ -29,7 +29,7 @@ class BasicDatabaseBackendTest extends AbstractBasicBackendTest
     {
         parent::setUp();
 
-        $this->subject = $this->getAccessibleMock(\TYPO3Incubator\Jobqueue\Backend\DatabaseBackend::class, array('_dummy'), array());
+        $this->subject = $this->getAccessibleMock(\TYPO3Incubator\Jobqueue\Backend\DatabaseBackend::class, array('_dummy'), array($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration']['default']['options']));
     }
 
     /**
