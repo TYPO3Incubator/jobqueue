@@ -4,6 +4,8 @@ namespace TYPO3Incubator\Jobqueue;
 class Utility
 {
 
+    protected static $stdIn = STDIN;
+
     /**
      * @param string $handler
      * @return bool
@@ -47,10 +49,10 @@ class Utility
     {
         if ($json === null) {
             // prevent a blocking read if nothing was actually send via STDIN
-            socket_set_blocking(STDIN, false);
-            $json = fgets(STDIN);
+            socket_set_blocking(self::$stdIn, false);
+            $json = fgets(self::$stdIn);
             // restore blocking mode
-            socket_set_blocking(STDIN, true);
+            socket_set_blocking(self::$stdIn, true);
         }
         $payload = $json;
         while (!is_array($payload) && !is_null($payload)) {
@@ -61,7 +63,7 @@ class Utility
             throw new \InvalidArgumentException("JSON could not be parsed '{$error}'");
         }
         if (!isset($payload['handler']) || !isset($payload['data']) || !isset($payload['attempts']) || !isset($payload['nextexecution'])) {
-            #throw new \InvalidArgumentException("JSON does not contain the required information '".var_export($payload, true).'\'');
+            throw new \InvalidArgumentException("JSON does not contain the required information '".var_export($payload, true).'\'');
         }
         return (new Message($payload['handler'], $payload['data']))
             ->setNextExecution($payload['nextexecution'])
