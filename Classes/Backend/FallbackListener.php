@@ -143,4 +143,13 @@ class FallbackListener implements QueueListener, BackendInterface
     {
         // not needed
     }
+
+    /**
+     * @param \TYPO3Incubator\Jobqueue\Message $message
+     * @return mixed
+     */
+    public function failed($message)
+    {
+        $this->backend->failed($message);
+    }
 }

@@ -15,11 +15,6 @@ class PoolWorker
     protected $processPool;
 
     /**
-     * @var int
-     */
-    protected $processedJobs = 0;
-
-    /**
      * @var Backend\BackendInterface
      */
     private $connection;
@@ -62,6 +57,11 @@ class PoolWorker
      * @var  bool
      */
     protected $useSignals;
+
+    /**
+     * @var Configuration
+     */
+    protected $configuration;
 
     /**
      * PoolWorker constructor.
@@ -150,8 +150,11 @@ class PoolWorker
                 $attempts = (!empty($result['attempts'])) ? $result['attempts'] : time();
                 $msg->setNextExecution($nextexecution);
                 $msg->setAttempts($attempts);
-                $this->logger->debug('action update');
-                $this->connection->update($msg);
+                if ($msg->getAttempts() >= $this->configuration->getAttemptsLimit()) {
+                    $this->connection->failed($msg);
+                } else {
+                    $this->connection->update($msg);
+                }
                 break;
             case 'delete':
                 $this->logger->debug('action: remove');
@@ -269,6 +272,14 @@ class PoolWorker
     public function gracefulShutdown()
     {
         $this->shutdown(true);
+    }
+
+    /**
+     * @param Configuration $configuration
+     */
+    public function injectConfiguration(Configuration $configuration)
+    {
+        $this->configuration = $configuration;
     }
 
 }

@@ -32,6 +32,11 @@ class WorkCommand extends Command
     protected $connection;
 
     /**
+     * @var \TYPO3Incubator\Jobqueue\Configuration
+     */
+    protected $configuration;
+
+    /**
      * @var string
      */
     protected $queue;
@@ -81,6 +86,8 @@ class WorkCommand extends Command
 
         if ($this->mode === self::MODE_STANDALONE) {
             $this->queueManager = $this->objM->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
+            $this->connection = $this->queueManager->getBackend($this->connectionArgument);
+            $this->configuration = $this->objM->get(\TYPO3Incubator\Jobqueue\Configuration::class);
             $this->runStandalone();
             exit;
         } else {
@@ -95,26 +102,32 @@ class WorkCommand extends Command
     /**
      * @param $message
      * @return \TYPO3Incubator\Jobqueue\Job
-     * @throws \Exception
+     * @throws \TYPO3Incubator\Jobqueue\ProcessingException
      */
     protected function processMessage($message)
     {
+        /** @var \TYPO3Incubator\Jobqueue\Worker $worker */
         $worker = $this->objM->get(\TYPO3Incubator\Jobqueue\Worker::class, $message);
-        try {
-            $job = $worker->run();
-        } catch (\Exception $e) {
-            // logic exception...
-            throw $e;
-        }
+        $job = $worker->run();
         return $job;
     }
 
     protected function runStandalone()
     {
-        $this->connection = $this->queueManager->getBackend($this->connectionArgument);
         $message = $this->connection->get($this->queue);
         if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
-            $job = $this->processMessage($message);
+            try {
+                $job = $this->processMessage($message);
+            } catch (\TYPO3Incubator\Jobqueue\ProcessingException $e) {
+                // in case of an exception attempts already have been updated
+                if($message->getAttempts() >= $this->configuration->getAttemptsLimit()) {
+                    $this->connection->failed($message);
+                    return;
+                } else {
+                    $this->connection->update($message);
+                    return;
+                }
+            }
             if ($job->isReleased()) {
                 $this->connection->update($message);
             }
@@ -128,19 +141,26 @@ class WorkCommand extends Command
     {
         $message = \TYPO3Incubator\Jobqueue\Utility::parseMessage();
         if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
-            $job = $this->processMessage($message);
             $result = [
                 'action' => ''
             ];
-
-            if ($job->isReleased()) {
+            try {
+                $job = $this->processMessage($message);
+            } catch (\TYPO3Incubator\Jobqueue\ProcessingException $e) {
+                // let our listener decide what to do next
                 $result['action'] = 'requeue';
                 $result['nextexecution'] = $message->getNextExecution();
                 $result['attempts'] = $message->getAttempts();
             }
-
-            if ($job->isDeleted()) {
-                $result['action'] = 'delete';
+            if (isset($job) && $job instanceof \TYPO3Incubator\Jobqueue\Job) {
+                if ($job->isReleased()) {
+                    $result['action'] = 'requeue';
+                    $result['nextexecution'] = $message->getNextExecution();
+                    $result['attempts'] = $message->getAttempts();
+                }
+                if ($job->isDeleted()) {
+                    $result['action'] = 'delete';
+                }
             }
             return json_encode($result);
         }
