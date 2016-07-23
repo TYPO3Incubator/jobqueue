@@ -88,7 +88,8 @@ class WorkCommand extends Command
             $this->queueManager = $this->objM->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
             $this->connection = $this->queueManager->getBackend($this->connectionArgument);
             $this->configuration = $this->objM->get(\TYPO3Incubator\Jobqueue\Configuration::class);
-            $this->runStandalone();
+            $num = $input->getOption('num');
+            $this->runStandalone($num);
             exit;
         } else {
             $result = $this->runPiped();
@@ -112,27 +113,29 @@ class WorkCommand extends Command
         return $job;
     }
 
-    protected function runStandalone()
+    protected function runStandalone($num)
     {
-        $message = $this->connection->get($this->queue);
-        if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
-            try {
-                $job = $this->processMessage($message);
-            } catch (\TYPO3Incubator\Jobqueue\ProcessingException $e) {
-                // in case of an exception attempts already have been updated
-                if($message->getAttempts() >= $this->configuration->getAttemptsLimit()) {
-                    $this->connection->failed($message);
-                    return;
-                } else {
-                    $this->connection->update($message);
-                    return;
+        for($i = 0; $i < $num; $i++) {
+            $message = $this->connection->get($this->queue);
+            if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
+                try {
+                    $job = $this->processMessage($message);
+                } catch (\TYPO3Incubator\Jobqueue\ProcessingException $e) {
+                    // in case of an exception attempts already have been updated
+                    if($message->getAttempts() >= $this->configuration->getAttemptsLimit()) {
+                        $this->connection->failed($message);
+                        return;
+                    } else {
+                        $this->connection->update($message);
+                        return;
+                    }
                 }
-            }
-            if ($job->isReleased()) {
-                $this->connection->update($message);
-            }
-            if ($job->isDeleted()) {
-                $this->connection->remove($message);
+                if ($job->isReleased()) {
+                    $this->connection->update($message);
+                }
+                if ($job->isDeleted()) {
+                    $this->connection->remove($message);
+                }
             }
         }
     }
