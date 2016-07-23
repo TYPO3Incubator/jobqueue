@@ -49,6 +49,12 @@ class Queue
         return $this;
     }
 
+    /**
+     * @param $handler
+     * @param $data
+     * @param $delay
+     * @return \TYPO3Incubator\Jobqueue\Message
+     */
     protected function buildMessage($handler, $data, $delay)
     {
         if (!\TYPO3Incubator\Jobqueue\Utility::validHandler($handler)) {
