@@ -4,10 +4,8 @@ namespace TYPO3Incubator\Jobqueue;
 class Job
 {
 
-    const STATE_REJECTED = 0;
-    const STATE_RESOLVED = 1;
-    const STATE_DELETED = 2;
-    const STATE_RELEASED = 3;
+    const STATE_DELETED = 0;
+    const STATE_RELEASED = 1;
 
     /**
      * @var Message
@@ -28,6 +26,9 @@ class Job
         $this->message = $message;
     }
 
+    /**
+     * @return int
+     */
     public function attempts()
     {
         return $this->message->getAttempts();
@@ -43,19 +44,9 @@ class Job
         $this->state = self::STATE_RELEASED;
     }
 
-
-    /**
-     * @internal
-     * @return bool
-     */
-    public function reject()
-    {
-        $this->state = self::STATE_REJECTED;
-        throw new \Exception('currently not supported');
-    }
-
     /**
      * Processing is finished. Remove the job from the queue.
+     * @return void
      */
     public function delete()
     {
@@ -63,35 +54,24 @@ class Job
     }
 
     /**
-     * @internal
      * @return bool
      */
-    public function resolve()
-    {
-        $this->state = self::STATE_RESOLVED;
-        throw new \Exception('currently not supported');
-    }
-
-    public function isRejected()
-    {
-        return $this->state === self::STATE_REJECTED;
-    }
-
-    public function isResolved()
-    {
-        return $this->state === self::STATE_RESOLVED;
-    }
-
     public function isDeleted()
     {
         return $this->state === self::STATE_DELETED;
     }
 
+    /**
+     * @return bool
+     */
     public function isReleased()
     {
         return $this->state === self::STATE_RELEASED;
     }
 
+    /**
+     * @return bool
+     */
     public function shouldBeRequeued()
     {
         return $this->state === self::STATE_RELEASED;
