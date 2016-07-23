@@ -6,6 +6,11 @@ class Worker
 {
 
     /**
+     * @var \TYPO3\CMS\Extbase\Object\ObjectManager
+     */
+    protected $objectManager;
+
+    /**
      * @var Message
      */
     private $message;
@@ -17,6 +22,7 @@ class Worker
 
     /**
      * @return Job
+     * @throws ProcessingException
      */
     public function run()
     {
@@ -26,7 +32,7 @@ class Worker
         }
 
         if (is_array($handler)) {
-            $obj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance($handler['class']);
+            $obj = $this->objectManager->get($handler['class']);
             $handler = [$obj, $handler['method']];
         }
 
@@ -36,18 +42,17 @@ class Worker
         try {
             call_user_func($handler, $this->message->getData(), $job);
         } catch (\Exception $e) {
-            // @todo think about it...
+            throw new ProcessingException('En exception occured when processing a message', 0, $e);
         }
-
-        /*
-        if(! $job->isRejected() && ! $job->isResolved()) {
-            $handler = $this->message->getHandler();
-            throw new \LogicException("The handler '{$handler}' did not resolve or reject his job!");
-        }
-        */
 
         return $job;
     }
 
-
+    /**
+     * @param \TYPO3\CMS\Extbase\Object\ObjectManager $objectManager
+     */
+    public function injectObjectManager(\TYPO3\CMS\Extbase\Object\ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
 }

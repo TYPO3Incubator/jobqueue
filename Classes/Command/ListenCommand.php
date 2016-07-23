@@ -8,6 +8,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ListenCommand extends Command
 {
+
+    /**
+     * @var \TYPO3\CMS\Extbase\Object\ObjectManager
+     */
+    protected $objectManager;
+
     public function configure()
     {
         $this->setDescription('Queue listener');
@@ -31,8 +37,10 @@ class ListenCommand extends Command
         $limit = (int)$input->getOption('limit');
         $disableSignalHandling = $input->getOption('nosig');
         $gracefulShutdown = $input->getOption('graceful-shutdown');
+        $this->objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
+
         /** @var \TYPO3Incubator\Jobqueue\QueueManager $queueManager */
-        $queueManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3Incubator\Jobqueue\QueueManager::class);
+        $queueManager = $this->objectManager->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
 
         $connection = $queueManager->getBackend($connectionIdetifier);
 
@@ -43,7 +51,7 @@ class ListenCommand extends Command
         }
         $useSignals = !$disableSignalHandling;
         /** @var \TYPO3Incubator\Jobqueue\PoolWorker $poolWorker */
-        $poolWorker = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3Incubator\Jobqueue\PoolWorker::class,
+        $poolWorker = $this->objectManager->get(\TYPO3Incubator\Jobqueue\PoolWorker::class,
             $backend, $queue, $limit, $useSignals);
 
         if ($disableSignalHandling === false) {

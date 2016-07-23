@@ -80,6 +80,7 @@ class WorkCommand extends Command
         $this->objM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
 
         if ($this->mode === self::MODE_STANDALONE) {
+            $this->queueManager = $this->objM->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
             $this->runStandalone();
             exit;
         } else {
@@ -91,10 +92,14 @@ class WorkCommand extends Command
         }
     }
 
-
+    /**
+     * @param $message
+     * @return \TYPO3Incubator\Jobqueue\Job
+     * @throws \Exception
+     */
     protected function processMessage($message)
     {
-        $worker = new \TYPO3Incubator\Jobqueue\Worker($message);
+        $worker = $this->objM->get(\TYPO3Incubator\Jobqueue\Worker::class, $message);
         try {
             $job = $worker->run();
         } catch (\Exception $e) {
@@ -106,7 +111,6 @@ class WorkCommand extends Command
 
     protected function runStandalone()
     {
-        $this->queueManager = $this->objM->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
         $this->connection = $this->queueManager->getBackend($this->connectionArgument);
         $message = $this->connection->get($this->queue);
         if ($message instanceof \TYPO3Incubator\Jobqueue\Message) {
