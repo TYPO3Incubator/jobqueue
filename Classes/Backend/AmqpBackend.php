@@ -439,7 +439,7 @@ class AmqpBackend implements BackendInterface, QueueListener
     protected function buildMessage(\PhpAmqpLib\Message\AMQPMessage $message)
     {
         $payload = $message->body;
-        while (!is_array($payload)) {
+        while (!is_array($payload) && !is_null($payload)) {
             $payload = json_decode($payload, true);
         }
         $msg = (new \TYPO3Incubator\Jobqueue\Message($payload['handler'], $payload['data']))
