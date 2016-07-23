@@ -20,7 +20,8 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
         ],
         \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->resize' => [
             'image' => 'file'
-        ]
+        ],
+        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->fail' => []
     ];
 
     public function initializeAction()

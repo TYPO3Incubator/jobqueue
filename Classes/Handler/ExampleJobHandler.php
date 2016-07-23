@@ -11,11 +11,6 @@ class ExampleJobHandler
         sleep($time);
         $job->delete();
         return;
-        if ($job->attempts() <= 2) {
-            $job->release(20);
-        } else {
-            $job->delete();
-        }
     }
 
     public function resize(array $data, \TYPO3Incubator\Jobqueue\Job $job)
@@ -43,6 +38,11 @@ class ExampleJobHandler
                 $job->release(20);
             }
         }
+    }
+
+    public function fail($data, \TYPO3Incubator\Jobqueue\Job $job)
+    {
+        throw new \RuntimeException('this handler fails');
     }
 
 }
