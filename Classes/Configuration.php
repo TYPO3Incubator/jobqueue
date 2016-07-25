@@ -29,6 +29,15 @@ class Configuration implements SingletonInterface
     }
 
     /**
+     * @param string $identifier
+     * @return array|null
+     */
+    public function getBackendConfiguration($identifier)
+    {
+        return (isset($this->config['configuration'][$identifier])) ? $this->config['configuration'][$identifier] : null;
+    }
+
+    /**
      * @return int
      */
     public function getAttemptsLimit()
