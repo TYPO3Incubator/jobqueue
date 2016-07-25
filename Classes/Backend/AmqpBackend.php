@@ -19,10 +19,9 @@ class AmqpBackend implements BackendInterface, QueueListener
     protected $identifier;
 
     /**
-     * cached information for routing
-     * @var array
+     * @var bool
      */
-    protected $exchangeRouting = [];
+    protected $defaultExchangeDeclared = false;
 
     /**
      * array holding
@@ -47,11 +46,6 @@ class AmqpBackend implements BackendInterface, QueueListener
     protected $channel;
 
     /**
-     * @var string
-     */
-    protected $defaultExchange = 'typo3.direct';
-
-    /**
      * @var callable
      */
     protected $listenCallback;
@@ -71,6 +65,10 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     protected $listenMessageReceived = false;
 
+    /**
+     * @var \TYPO3Incubator\Jobqueue\AmqpUtility
+     */
+    protected $amqpUtility;
 
     public function __construct($options)
     {
@@ -85,17 +83,13 @@ class AmqpBackend implements BackendInterface, QueueListener
         $this->identifier = $options['identifier'];
         $this->channel = $this->connection->channel();
         $this->channel->confirm_select();
+        /** @var \TYPO3\CMS\Extbase\Object\ObjectManager $objM */
+        $objM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
+        $this->amqpUtility = $objM->get(\TYPO3Incubator\Jobqueue\AmqpUtility::class, $this->identifier);
         /** @var \TYPO3\CMS\Core\Log\LogManager $logManager */
         $logManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Log\LogManager::class);
         /** @var \Psr\Log\LoggerInterface $logger */
         $this->logger = $logManager->getLogger(__CLASS__);
-    }
-
-
-    public function disconnect()
-    {
-        $this->channel->close();
-        $this->connection->close();
     }
 
     /**
@@ -120,7 +114,7 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function get($queue, $lock = true)
     {
-        $this->declareQueue($queue);
+        $publishConf = $this->getPublishInformation($queue);
         $message = $this->channel->basic_get($queue, false);
         if ($message instanceof \PhpAmqpLib\Message\AMQPMessage) {
             $msg = $this->buildMessage($message);
@@ -286,13 +280,20 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function count($queue)
     {
-        if (!$this->queueOverrideExists($queue)) {
-            $result = $this->channel->queue_declare($queue, true, true, false, false, false);
-            if (is_array($result)) {
-                return (int)$result[1];
-            }
+        $queueDef = $this->amqpUtility->getQueueDefinition($queue);
+        $queueDef['queue'] = $queue;
+        $result = $this->channel->queue_declare(
+            $queueDef['queue'],
+            true,
+            $queueDef['durable'],
+            $queueDef['exclusive'],
+            $queueDef['auto_delete'],
+            false,
+            $queueDef['arguments']
+            );
+        if (is_array($result)) {
+            return (int)$result[1];
         }
-        return 0;
     }
 
     /**
@@ -306,8 +307,9 @@ class AmqpBackend implements BackendInterface, QueueListener
             throw new \LogicException('Looks like you are trying to dead letter an unlocked/non-exclusive message');
         }
         // @todo read up on pros and cons about rejecting or nacking with requeue = false
-        $this->declareQueue('failed');
-        $this->bindQueue('failed', $this->defaultExchange, $this->getDefaultRoutingKey('failed'));
+        $this->declareQueueIfNeeded('failed');
+        list($exchange, $routing) = $this->getPublishInformation('failed');
+        $this->bindQueue('failed', $exchange, $routing);
         $this->channel->basic_reject($deliveryTag, false);
         $this->channel->wait_for_pending_acks();
     }
@@ -336,11 +338,9 @@ class AmqpBackend implements BackendInterface, QueueListener
         $internal = false,
         $arguments = null
     ) {
-        if (!isset($this->declaredExchanges[$exchange])) {
-            $this->channel->exchange_declare($exchange, $type, $passive, $durable, $auto_delete, $internal, true,
-                $arguments, null);
-            $this->declaredExchanges[$exchange] = true;
-        }
+
+        $this->channel->exchange_declare($exchange, $type, $passive, $durable, $auto_delete, $internal, true,
+            $arguments, null);
     }
 
     /**
@@ -349,37 +349,59 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     protected function getPublishInformation($queue)
     {
-        $exchange = '';
-        $routing = '';
-        if (!$this->queueOverrideExists($queue)) {
-            $exchange = $this->defaultExchange;
-            $routing = $this->getDefaultRoutingKey($queue);
-            $this->declareExchange($this->defaultExchange, 'direct', false, true, false);
-            // make sure the queue exists
-            $this->declareQueue($queue);
-            $this->bindQueue($queue, $this->defaultExchange, $routing);
-        } else {
-            // @todo initialize according to override config
+        $info = $this->amqpUtility->getPublishInformation($queue);
+        if (!$this->amqpUtility->isVirtualQueue($queue)) {
+            $this->declareExchangeIfNeeded();
+            $this->declareQueueIfNeeded($queue);
+            $this->bindQueue($queue, $info[0], $info[1]);
         }
-        return array($exchange, $routing);
+        return $info;
+    }
+
+    /**
+     * Declares the default exchange once
+     */
+    protected function declareExchangeIfNeeded()
+    {
+        if ($this->defaultExchangeDeclared === false) {
+            // if this is not a virtual queue, we need to setup everything on our own
+            $exchangeConfig = $this->amqpUtility->getDefaultExchangeDefinition();
+            // make sure our default exchange is declared
+            call_user_func_array([$this, 'declareExchange'], $exchangeConfig);
+            $this->defaultExchangeDeclared = true;
+        }
+    }
+
+    /**
+     * Gets the correct queue definition and declares the queue if
+     * the queue was not already declared
+     * @param $queue
+     */
+    protected function declareQueueIfNeeded($queue)
+    {
+        if (!isset($this->declaredQueues[$queue])) {
+            $queueConfig = $this->amqpUtility->getQueueDefinition($queue);
+            $queueConfig['queue'] = $queue;
+            call_user_func_array([$this, 'declareQueue'], $queueConfig);
+            if (!$this->amqpUtility->isVirtualQueue($queue)) {
+                list($exchange, $routing) = $this->amqpUtility->getPublishInformation($queue);
+                $this->bindQueue($queue, $exchange, $routing);
+            }
+            $this->declaredQueues[$queue] = true;
+        }
     }
 
     /**
      * @param string $queue
+     * @param bool $passive
+     * @param bool $durable
+     * @param bool $exclusive
+     * @param bool $auto_delete
+     * @param null|array $arguments
      */
-    protected function declareQueue($queue)
+    protected function declareQueue($queue, $passive, $durable, $exclusive, $auto_delete, $arguments = null)
     {
-        if (!isset($this->declaredQueues[$queue])) {
-            if (!$this->queueOverrideExists($queue)) {
-                $this->channel->queue_declare($queue, false, true, false, false, true,
-                    [
-                        'x-dead-letter-exchange' => ['S', $this->defaultExchange],
-                        'x-dead-letter-routing-key' => ['S', $this->getDefaultRoutingKey('failed')]
-                    ]
-                );
-                $this->declaredQueues[$queue] = true;
-            }
-        }
+        $this->channel->queue_declare($queue, $passive, $durable, $exclusive, $auto_delete, true, $arguments, null);
     }
 
     /**
@@ -394,24 +416,6 @@ class AmqpBackend implements BackendInterface, QueueListener
             $this->channel->queue_bind($queue, $exchange, $key);
             $this->boundQueues[$hash] = true;
         }
-    }
-
-    /**
-     * @param string $queue
-     * @return bool
-     */
-    protected function queueOverrideExists($queue)
-    {
-        return isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration'][$this->identifier]['queues'][$queue]);
-    }
-
-    /**
-     * @param $queue
-     * @return string
-     */
-    protected function getDefaultRoutingKey($queue)
-    {
-        return $queue . '-direct';
     }
 
     /*
