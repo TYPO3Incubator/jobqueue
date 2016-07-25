@@ -11,11 +11,6 @@ sudo: true
 services:
   - rabbitmq
 
-addons:
-  apt:
-    packages:
-      - parallel
-
 cache:
   directories:
     - $HOME/.composer/cache
@@ -29,6 +24,8 @@ before_install:
 install:
   - sudo rabbitmq-plugins enable rabbitmq_management
   - sudo service rabbitmq-server restart
+  - wget http://localhost:15672/cli/rabbitmqadmin -O /usr/local/bin/rabbitmqadmin
+  - chmod +x /usr/local/bin/rabbitmqadmin
 
 before_script:
   - phpenv config-rm xdebug.ini;
