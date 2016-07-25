@@ -59,7 +59,7 @@ class QueueManager implements SingletonInterface
             }
             try {
                 $options = array_merge($options, ['identifier' => $identifier]);
-                $this->initializedBackends[$identifier] = $this->objectManager->get($backend, $options);;
+                $this->initializedBackends[$identifier] = $this->objectManager->get($backend, $options);
             } catch (\Exception $e) {
                 $msg = $e->getMessage();
                 throw new \RuntimeException("The queue could not be initialized '{$msg}'");
