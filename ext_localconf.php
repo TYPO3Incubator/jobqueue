@@ -51,8 +51,8 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue'] = [
                 ]*/
             ],
             'defaultQueue' => 'default',
-            'exchanges' => [],
-            'queues' => [
+            'queues' => [],
+            'virtualQueues' => [
                 'name-of-the-virtual-queue' => [
                     'exchange' => 'name-of-the-exchange-to-use',
                     'routing' => 'routing-key-to-use'
