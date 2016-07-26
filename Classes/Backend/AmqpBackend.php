@@ -159,7 +159,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         if ($this->listenCallback === null || $this->listenQueue === null) {
             $this->listenCallback = $cb;
             $this->listenQueue = $queue;
-            $this->declareQueue($queue);
+            $this->declareQueueIfNeeded($queue);
             $this->logger->debug('basic_consume ' . $this->getConsumerTag($queue));
             $this->channel->basic_consume($queue, $this->getConsumerTag($queue), false, false, false, false,
                 array($this, 'onMessageReceived'));
