@@ -280,6 +280,7 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function count($queue)
     {
+        $this->declareQueueIfNeeded($queue);
         $queueDef = $this->amqpUtility->getQueueDefinition($queue);
         $queueDef['queue'] = $queue;
         $result = $this->channel->queue_declare(
