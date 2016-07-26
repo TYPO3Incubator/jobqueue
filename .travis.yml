@@ -1,10 +1,7 @@
 language: php
 
-matrix:
-  fast_finish: true
-  allow_failures:
-  include:
-    - php: 7.0
+php:
+  - '7.0'
 
 sudo: true
 
@@ -24,8 +21,7 @@ before_install:
 install:
   - sudo rabbitmq-plugins enable rabbitmq_management
   - sudo service rabbitmq-server restart
-  - wget http://localhost:15672/cli/rabbitmqadmin -O /usr/local/bin/rabbitmqadmin
-  - chmod +x /usr/local/bin/rabbitmqadmin
+  - mkdir $HOME/bin && wget http://localhost:15672/cli/rabbitmqadmin -O $HOME/bin/rabbitmqadmin && chmod +x $HOME/bin/rabbitmqadmin && export PATH="$HOME/bin:$PATH"
 
 before_script:
   - phpenv config-rm xdebug.ini;
