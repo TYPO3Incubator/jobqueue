@@ -387,6 +387,7 @@ class AmqpBackend implements BackendInterface, QueueListener
             call_user_func_array([$this, 'declareQueue'], $queueConfig);
             if (!$this->amqpUtility->isVirtualQueue($queue)) {
                 list($exchange, $routing) = $this->amqpUtility->getPublishInformation($queue);
+                $this->declareExchangeIfNeeded();
                 $this->bindQueue($queue, $exchange, $routing);
             }
             $this->declaredQueues[$queue] = true;
