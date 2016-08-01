@@ -1,6 +1,7 @@
 <?php
 namespace TYPO3Incubator\Jobqueue\Tests\Unit;
 
+use org\bovigo\vfs\vfsStream;
 use TYPO3\CMS\Core\Tests\UnitTestCase;
 
 class UtilityTest extends UnitTestCase
@@ -190,4 +191,74 @@ class UtilityTest extends UnitTestCase
             ]
         ];
     }
+
+    /**
+     * @test
+     * @dataProvider parsesMessagesDataProvider
+     * @param string $encoded
+     * @param string $handler
+     * @param string $data
+     * @param int $attempts
+     * @param int $nextexcution
+     */
+    public function parsesMessagesFromStream($encoded, $handler, $data,  $attempts, $nextexcution)
+    {
+        $root = vfsStream::setup('root', null, [
+            'payload.json' => $encoded
+        ]);
+        $handle = fopen($root->url() . '/payload.json', 'r');
+        $reflection = new \ReflectionProperty(\TYPO3Incubator\Jobqueue\Utility::class, 'stdIn');
+        $reflection->setAccessible(true);
+        $reflection->setValue(\TYPO3Incubator\Jobqueue\Utility::class, $handle);
+        $message = \TYPO3Incubator\Jobqueue\Utility::parseMessage();
+        $this->assertEquals($handler, $message->getHandler());
+        $this->assertEquals($data, $message->getData());
+        $this->assertEquals($attempts, $message->getAttempts());
+        $this->assertEquals($nextexcution, $message->getNextExecution());
+    }
+
+    /**
+     * @test
+     * @dataProvider parsesMessagesDataProvider
+     * @param string $encoded
+     * @param string $handler
+     * @param array $data
+     * @param int $attempts
+     * @param int $nextexcution
+     */
+    public function parsesMessagesFromString($encoded, $handler, $data,  $attempts, $nextexcution)
+    {
+        $message = \TYPO3Incubator\Jobqueue\Utility::parseMessage($encoded);
+        $this->assertEquals($handler, $message->getHandler());
+        $this->assertEquals($data, $message->getData());
+        $this->assertEquals($attempts, $message->getAttempts());
+        $this->assertEquals($nextexcution, $message->getNextExecution());
+    }
+
+    /**
+     * @return array
+     */
+    public function parsesMessagesDataProvider()
+    {
+        return [
+            [
+                '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"data\\":{\\"duration\\":5},\\"attempts\\":0,\\"nextexecution\\":1469561788}"',
+                'TYPO3Incubator\\Jobqueue\\Handler\\ExampleJobHandler->sleep',
+                [
+                    'duration' => 5
+                ],
+                0,
+                1469561788
+            ],[
+                '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler::sleep\\",\\"data\\":{\\"duration\\":9},\\"attempts\\":2,\\"nextexecution\\":1469891788}"',
+                'TYPO3Incubator\\Jobqueue\\Handler\\ExampleJobHandler::sleep',
+                [
+                    'duration' => 9
+                ],
+                2,
+                1469891788
+            ]
+        ];
+    }
+
 }
