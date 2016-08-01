@@ -211,19 +211,35 @@ class UtilityTest extends UnitTestCase
             'invalid json' => [
                 '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\,\\data\\":{\\"duration\\":5},\\"attempts\\":0,\\"nextexecution\\":1469561788}"'
             ],
-            'missing required key' => [
+            'missing required key nextexecution' => [
                 '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"data\\":{\\"duration\\":5},\\"attempts\\":0}"'
             ],
-            'missing required key' => [
+            'missing required key data' => [
                 '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"attempts\\":0,\\"nextexecution\\":1469561788}"'
             ],
-            'missing required key' => [
+            'missing required key attempts' => [
                 '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"data\\":{\\"duration\\":5},\\"nextexecution\\":1469561788}"'
             ],
-            'missing required key' => [
+            'missing required key handler' => [
                 '"{\\"data\\":{\\"duration\\":5},\\"attempts\\":0,\\"nextexecution\\":1469561788}"'
             ]
         ];
+    }
+
+    /**
+     * @test
+     * @expectedException \InvalidArgumentException
+     */
+    public function doesNotBlockWhenParsingFromEmptyStream()
+    {
+        $root = vfsStream::setup('root', null, [
+            'payload.json' => ''
+        ]);
+        $handle = fopen($root->url() . '/payload.json', 'r');
+        $reflection = new \ReflectionProperty(\TYPO3Incubator\Jobqueue\Utility::class, 'stdIn');
+        $reflection->setAccessible(true);
+        $reflection->setValue(\TYPO3Incubator\Jobqueue\Utility::class, $handle);
+        \TYPO3Incubator\Jobqueue\Utility::parseMessage();
     }
 
     /**
