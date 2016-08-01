@@ -194,6 +194,40 @@ class UtilityTest extends UnitTestCase
 
     /**
      * @test
+     * @dataProvider throwsExceptionWhenParsingFromInvalidDataDataProvider
+     * @expectedException \InvalidArgumentException
+     */
+    public function throwsExceptionWhenParsingFromInvalidData($encoded)
+    {
+        \TYPO3Incubator\Jobqueue\Utility::parseMessage($encoded);
+    }
+
+    /**
+     * @return array
+     */
+    public function throwsExceptionWhenParsingFromInvalidDataDataProvider()
+    {
+        return [
+            'invalid json' => [
+                '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\,\\data\\":{\\"duration\\":5},\\"attempts\\":0,\\"nextexecution\\":1469561788}"'
+            ],
+            'missing required key' => [
+                '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"data\\":{\\"duration\\":5},\\"attempts\\":0}"'
+            ],
+            'missing required key' => [
+                '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"attempts\\":0,\\"nextexecution\\":1469561788}"'
+            ],
+            'missing required key' => [
+                '"{\\"handler\\":\\"TYPO3Incubator\\\\\\\\Jobqueue\\\\\\\\Handler\\\\\\\\ExampleJobHandler->sleep\\",\\"data\\":{\\"duration\\":5},\\"nextexecution\\":1469561788}"'
+            ],
+            'missing required key' => [
+                '"{\\"data\\":{\\"duration\\":5},\\"attempts\\":0,\\"nextexecution\\":1469561788}"'
+            ]
+        ];
+    }
+
+    /**
+     * @test
      * @dataProvider parsesMessagesDataProvider
      * @param string $encoded
      * @param string $handler
