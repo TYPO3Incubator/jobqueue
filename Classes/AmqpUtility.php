@@ -97,10 +97,10 @@ class AmqpUtility
     public function getQueueDefinition($queue)
     {
         if ($this->queueOverrideExists($queue)) {
-            $this->queues[$queue] = array_merge($this->defaultQueueDefinition, $this->queues[$queue]);
+            $this->queues[$queue] = array_merge($this->defaultQueueDefinition, $this->queues[$queue], ['queue' => $queue]);
             return $this->queues[$queue];
         }
-        return $this->defaultQueueDefinition;
+        return array_merge($this->defaultQueueDefinition, ['queue' => $queue]);
     }
 
     public function getDefaultExchangeDefinition()
