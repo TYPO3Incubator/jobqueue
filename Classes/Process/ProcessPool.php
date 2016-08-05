@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3Incubator\Jobqueue;
+namespace TYPO3Incubator\Jobqueue\Process;
 
 
 class ProcessPool

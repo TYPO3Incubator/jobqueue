@@ -1,7 +1,7 @@
 <?php
-
 namespace TYPO3Incubator\Jobqueue;
 
+use TYPO3Incubator\Jobqueue\Process\ProcessPool;
 
 class PoolWorker
 {
