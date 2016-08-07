@@ -53,7 +53,7 @@ class AmqpUtilityTest extends UnitTestCase
                             'exclusive' => true
                         ],
                         'testqueue04' => [
-                            'auto_delete' => false
+                            'auto_delete' => true
                         ],
                         'testqueue05' => [
                             'arguments' => null
@@ -201,7 +201,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => false,
                     'durable' => true,
                     'exclusive' => false,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']
@@ -215,7 +215,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => false,
                     'durable' => true,
                     'exclusive' => false,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']
@@ -229,7 +229,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => true,
                     'durable' => true,
                     'exclusive' => false,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']
@@ -243,7 +243,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => false,
                     'durable' => false,
                     'exclusive' => false,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']
@@ -257,7 +257,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => false,
                     'durable' => true,
                     'exclusive' => true,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']
@@ -271,7 +271,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => false,
                     'durable' => true,
                     'exclusive' => false,
-                    'auto_delete' => false,
+                    'auto_delete' => true,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']
@@ -285,7 +285,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => false,
                     'durable' => true,
                     'exclusive' => false,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => null
                 ]
             ],
@@ -296,7 +296,7 @@ class AmqpUtilityTest extends UnitTestCase
                     'passive' => true,
                     'durable' => true,
                     'exclusive' => true,
-                    'auto_delete' => true,
+                    'auto_delete' => false,
                     'arguments' => [
                         'x-dead-letter-exchange' => ['S', 'typo3.direct'],
                         'x-dead-letter-routing-key' => ['S', 'failed-direct']

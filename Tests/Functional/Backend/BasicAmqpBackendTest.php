@@ -40,7 +40,7 @@ class BasicAmqpBackendTest extends \TYPO3Incubator\Jobqueue\Tests\Functional\Bac
             ],
         ];
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration']['rabbitmq']['queues']['fanout2'] = [
-            'auto_delete' => false
+            'auto_delete' => true
         ];
         $config = array_merge($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration']['rabbitmq']['options'], ['identifier' => 'rabbitmq']);
         $this->subject = $this->getAccessibleMock(\TYPO3Incubator\Jobqueue\Backend\AmqpBackend::class, array('_dummy'), array($config));

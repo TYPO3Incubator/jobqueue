@@ -40,7 +40,7 @@ class AmqpUtility
         'passive' => false,
         'durable' => true,
         'exclusive' => false,
-        'auto_delete' => true,
+        'auto_delete' => false,
         'arguments' => [
             'x-dead-letter-exchange' => ['S', ''],
             'x-dead-letter-routing-key' => ['S', '']
