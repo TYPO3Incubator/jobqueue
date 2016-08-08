@@ -39,11 +39,15 @@ class AmqpBackend implements BackendInterface, QueueListener
      * @var array
      */
     protected $boundQueues = [];
+    /**
+     * @var \PhpAmqpLib\Channel\AMQPChannel
+     */
+    protected $publishChannel;
 
     /**
      * @var \PhpAmqpLib\Channel\AMQPChannel
      */
-    protected $channel;
+    protected $consumeChannel;
 
     /**
      * @var callable
@@ -81,8 +85,9 @@ class AmqpBackend implements BackendInterface, QueueListener
                 $options['password'], $options['vhost'], $options['ssl']);
         }
         $this->identifier = $options['identifier'];
-        $this->channel = $this->connection->channel();
-        $this->channel->confirm_select();
+        $this->publishChannel = $this->connection->channel();
+        $this->publishChannel->confirm_select();
+        $this->consumeChannel = $this->connection->channel();
         /** @var \TYPO3\CMS\Extbase\Object\ObjectManager $objM */
         $objM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
         $this->amqpUtility = $objM->get(\TYPO3Incubator\Jobqueue\AmqpUtility::class, $this->identifier);
@@ -103,8 +108,8 @@ class AmqpBackend implements BackendInterface, QueueListener
         $msg = new \PhpAmqpLib\Message\AMQPMessage(json_encode($message),
             ['delivery_mode' => \PhpAmqpLib\Message\AMQPMessage::DELIVERY_MODE_PERSISTENT]);
         list($exchange, $routing) = $this->getPublishInformation($queue);
-        $this->channel->basic_publish($msg, $exchange, $routing);
-        $this->channel->wait_for_pending_acks();
+        $this->publishChannel->basic_publish($msg, $exchange, $routing);
+        $this->publishChannel->wait_for_pending_acks();
     }
 
     /**
@@ -115,7 +120,7 @@ class AmqpBackend implements BackendInterface, QueueListener
     public function get($queue, $lock = true)
     {
         $publishConf = $this->getPublishInformation($queue);
-        $message = $this->channel->basic_get($queue, false);
+        $message = $this->consumeChannel->basic_get($queue, false);
         if ($message instanceof \PhpAmqpLib\Message\AMQPMessage) {
             $msg = $this->buildMessage($message);
             if ($msg instanceof \TYPO3Incubator\Jobqueue\Message) {
@@ -125,8 +130,8 @@ class AmqpBackend implements BackendInterface, QueueListener
                 */
                 if($lock === false) {
                     $deliveryTag = $msg->getMeta('amqp.delivery_tag', null);
-                    $this->channel->basic_nack($deliveryTag, false, true);
-                    $this->channel->wait_for_pending_acks_returns();
+                    $this->consumeChannel->basic_nack($deliveryTag, false, true);
+                    $this->consumeChannel->wait_for_pending_acks_returns();
                 }
                 return $msg;
             }
@@ -143,7 +148,6 @@ class AmqpBackend implements BackendInterface, QueueListener
         $msg = $this->buildMessage($message);
         if ($msg instanceof \TYPO3Incubator\Jobqueue\Message) {
             $this->listenMessageReceived = true;
-            $msg->setMeta('amqp.delivery_tag', $message->delivery_info['delivery_tag']);
             $msg->setMeta('amqp.queue', $this->listenQueue);
             call_user_func($this->listenCallback, $msg);
         }
@@ -162,7 +166,7 @@ class AmqpBackend implements BackendInterface, QueueListener
             $this->declareExchangeIfNeeded();
             $this->declareQueueIfNeeded($queue);
             $this->logger->debug('basic_consume ' . $this->getConsumerTag($queue));
-            $this->channel->basic_consume($queue, $this->getConsumerTag($queue), false, false, false, false,
+            $this->consumeChannel->basic_consume($queue, $this->getConsumerTag($queue), false, false, false, false,
                 array($this, 'onMessageReceived'));
         }
     }
@@ -180,7 +184,7 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
         /** @var \Psr\Log\LoggerInterface $logger */
         $this->logger->debug('basic_cancel ' . $this->getConsumerTag($queue));
-        $this->channel->basic_cancel($this->getConsumerTag($queue), false, true);
+        $this->consumeChannel->basic_cancel($this->getConsumerTag($queue), false, true);
     }
 
 
@@ -192,7 +196,7 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
         $blocking = !$blocking;
         if ($callable === null) {
-            $this->channel->wait(null, $blocking);
+            $this->consumeChannel->wait(['60,60'], $blocking);
         } else {
             /*
             we could make a blocking call that waits until the broker sends us
@@ -204,7 +208,7 @@ class AmqpBackend implements BackendInterface, QueueListener
             */
             $this->listenMessageReceived = false;
             while(!$this->listenMessageReceived) {
-                $this->channel->wait(null, true);
+                $this->consumeChannel->wait(['60,60'], true);
                 call_user_func($callable);
                 usleep(1000);
             }
@@ -217,7 +221,7 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function setMessageLimit($limit)
     {
-        $this->channel->basic_qos(0, $limit, true);
+        $this->consumeChannel->basic_qos(0, $limit, true);
     }
 
 
@@ -231,8 +235,8 @@ class AmqpBackend implements BackendInterface, QueueListener
         $this->logger->debug('add called', ['msg' => $message, 'queue' => $queue]);
         list($exchange, $routing) = $this->getPublishInformation($queue);
         $msg = $this->buildAMQPMessage($message);
-        $this->channel->basic_publish($msg, $exchange, $routing);
-        $this->channel->wait_for_pending_acks_returns();
+        $this->publishChannel->basic_publish($msg, $exchange, $routing);
+        $this->publishChannel->wait_for_pending_acks_returns();
     }
 
     /**
@@ -245,9 +249,8 @@ class AmqpBackend implements BackendInterface, QueueListener
         // we simply ack the message retrieval and the message will be removed from the queue
         $deliveryTag = $message->getMeta('amqp.delivery_tag', null);
         if ($deliveryTag !== null) {
-            $this->logger->debug('basic_ack', ['delivery_tag' => $deliveryTag]);
             if (($channel = $message->getMeta('amqp.channel', null)) === null) {
-                $channel = $this->channel;
+                $channel = $this->consumeChannel;
             }
             $channel->basic_ack($deliveryTag);
             $channel->wait_for_pending_acks();
@@ -266,7 +269,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         if ($deliveryTag !== null) {
             $this->logger->debug('basic_ack', ['delivery_tag' => $deliveryTag]);
             if (($channel = $message->getMeta('amqp.channel', null)) === null) {
-                $channel = $this->channel;
+                $channel = $this->consumeChannel;
             }
             $channel->basic_ack($deliveryTag);
             $channel->wait_for_pending_acks();
@@ -284,7 +287,7 @@ class AmqpBackend implements BackendInterface, QueueListener
         $this->declareQueueIfNeeded($queue);
         $queueDef = $this->amqpUtility->getQueueDefinition($queue);
         $queueDef['queue'] = $queue;
-        $result = $this->channel->queue_declare(
+        $result = $this->consumeChannel->queue_declare(
             $queueDef['queue'],
             true,
             $queueDef['durable'],
@@ -312,8 +315,8 @@ class AmqpBackend implements BackendInterface, QueueListener
         $this->declareQueueIfNeeded('failed');
         list($exchange, $routing) = $this->getPublishInformation('failed');
         $this->bindQueue('failed', $exchange, $routing);
-        $this->channel->basic_reject($deliveryTag, false);
-        $this->channel->wait_for_pending_acks();
+        $channel = $message->getMeta('amqp.channel', $this->consumeChannel);
+        $channel->basic_reject($deliveryTag, false);
     }
 
     /*
@@ -341,7 +344,9 @@ class AmqpBackend implements BackendInterface, QueueListener
         $arguments = null
     ) {
 
-        $this->channel->exchange_declare($exchange, $type, $passive, $durable, $auto_delete, $internal, true,
+        $this->publishChannel->exchange_declare($exchange, $type, $passive, $durable, $auto_delete, $internal, true,
+            $arguments, null);
+        $this->consumeChannel->exchange_declare($exchange, $type, $passive, $durable, $auto_delete, $internal, true,
             $arguments, null);
     }
 
@@ -404,7 +409,8 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     protected function declareQueue($queue, $passive, $durable, $exclusive, $auto_delete, $arguments = null)
     {
-        $this->channel->queue_declare($queue, $passive, $durable, $exclusive, $auto_delete, true, $arguments, null);
+        $this->publishChannel->queue_declare($queue, $passive, $durable, $exclusive, $auto_delete, true, $arguments, null);
+        $this->consumeChannel->queue_declare($queue, $passive, $durable, $exclusive, $auto_delete, true, $arguments, null);
     }
 
     /**
@@ -416,7 +422,8 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
         $hash = md5($queue . $exchange . $key);
         if (!isset($this->boundQueues[$hash])) {
-            $this->channel->queue_bind($queue, $exchange, $key);
+            $this->publishChannel->queue_bind($queue, $exchange, $key);
+            $this->consumeChannel->queue_bind($queue, $exchange, $key);
             $this->boundQueues[$hash] = true;
         }
     }
