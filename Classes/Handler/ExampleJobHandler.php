@@ -45,4 +45,20 @@ class ExampleJobHandler
         throw new \RuntimeException('this handler fails');
     }
 
+    public function mail($data,\TYPO3Incubator\Jobqueue\Job $job)
+    {
+        /** @var \TYPO3\CMS\Core\Mail\MailMessage $mail */
+        $mail = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Mail\\MailMessage');
+
+        $file = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileObjectByStorageAndIdentifier(1,
+            $data['image']);
+
+        $mail->setFrom('jobqueuedemo@localhost')
+            ->setTo($data['recipent'])
+            ->setBody('This is a demo mail. Please dont filter me :/')
+            ->attach(\Swift_Attachment::fromPath($file->getForLocalProcessing()))
+            ->send();
+        $job->delete();
+    }
+
 }

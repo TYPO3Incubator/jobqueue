@@ -21,7 +21,11 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
         \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->resize' => [
             'image' => 'file'
         ],
-        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->fail' => []
+        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->fail' => [],
+        \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->mail' => [
+            'recipent' => '',
+            'image'     => 'file'
+        ]
     ];
 
     public function initializeAction()
@@ -46,16 +50,20 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
      * @param string $handler
      * @param string $queue
      * @param int $count
+     * @param int $delay
      */
-    public function queueAction($backend, $handler, $queue, $count = 1)
+    public function queueAction($backend, $handler, $queue, $count = 1, $delay = 0)
     {
         /** @var \TYPO3Incubator\Jobqueue\QueueManager $qm */
         $qm = $this->objectManager->get(\TYPO3Incubator\Jobqueue\QueueManager::class);
         $queueInterface = $qm->get($backend);
         $data = $this->getHandlerData($handler);
         if ($handler !== \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->resize') {
+            if($handler === \TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler::class . '->mail') {
+                $count = 1;
+            }
             for ($x = 0; $x < $count; $x++) {
-                $queueInterface->setQueue($queue)->queue($handler, $data);
+                $queueInterface->setQueue($queue)->queue($handler, $data, $delay);
             }
         } else {
             $sizes = [];

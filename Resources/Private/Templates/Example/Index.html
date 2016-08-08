@@ -15,9 +15,15 @@
                 <label for="queue">Name of the queue</label>
                 <f:form.textfield value="default" id="queue" name="queue" class="form-control" />
             </div>
+            <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->sleep,TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->fail">
+                <div class="form-group">
+                    <label for="count">Times to queue</label>
+                    <f:form.textfield type="number" value="3" id="count" name="count" class="form-control" />
+                </div>
+            </div>
             <div class="form-group">
-                <label for="count">Times to queue</label>
-                <f:form.textfield type="number" value="3" id="count" name="count" class="form-control" />
+                <label for="delay">Delay</label>
+                <f:form.textfield type="number" value="0" id="delay" name="delay" class="form-control" />
             </div>
             <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->sleep">
                 <div class="form-group">
@@ -25,10 +31,16 @@
                     <f:form.textfield type="number" value="5" id="duration" name="duration" class="form-control" />
                 </div>
             </div>
-            <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->resize">
+            <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->resize,TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->mail">
                 <div class="form-group">
                     <label for="image">Image</label>
                     <f:form.upload id="image" name="image" class="form-control" />
+                </div>
+            </div>
+            <div class="conditional-props" data-handler="TYPO3Incubator\Jobqueue\Handler\ExampleJobHandler->mail">
+                <div class="form-group">
+                    <label for="recipent">Recipent</label>
+                    <f:form.textfield value="" placeholder="foo@bar.com" id="recipent" name="recipent" class="form-control" />
                 </div>
             </div>
             <div class="form-group">
@@ -43,6 +55,11 @@
         var filter = prop;
         $divs.addClass('hidden');
         $divs.filter(function(idx) {
+            var s = $(this).data('handler');
+            if(s.indexOf(',') !== -1) {
+                var handlers = s.split(',');
+                return (handlers.indexOf(filter) >= 0);
+            }
             return $(this).data('handler') === filter;
         }).removeClass('hidden');
     }
