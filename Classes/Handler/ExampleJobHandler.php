@@ -19,8 +19,7 @@ class ExampleJobHandler
         $objM = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
         /** @var \TYPO3\CMS\Extbase\Service\ImageService $imageService */
         $imageService = $objM->get(\TYPO3\CMS\Extbase\Service\ImageService::class);
-        $file = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileObjectByStorageAndIdentifier(1,
-            $data['image']);
+        $file = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier($data['image']);
         $processingInstructions = array(
             'width' => $data['width'] . 'c',
             'height' => $data['height'],
@@ -50,12 +49,15 @@ class ExampleJobHandler
         /** @var \TYPO3\CMS\Core\Mail\MailMessage $mail */
         $mail = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Mail\\MailMessage');
 
-        $file = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileObjectByStorageAndIdentifier(1,
-            $data['image']);
+        $file = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance()->getFileObjectFromCombinedIdentifier($data['image']);
+
+        if(empty($data['message'])) {
+            $data['message'] = 'This is a demo mail. Please dont filter me :/';
+        }
 
         $mail->setFrom('jobqueuedemo@localhost')
             ->setTo($data['recipent'])
-            ->setBody('This is a demo mail. Please dont filter me :/')
+            ->setBody($data['message'])
             ->attach(\Swift_Attachment::fromPath($file->getForLocalProcessing()))
             ->send();
         $job->delete();

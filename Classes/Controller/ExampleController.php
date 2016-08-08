@@ -152,7 +152,7 @@ class ExampleController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControll
                             }
                             $folder = $resourceStorage->getFolder('tx_jobqueue');
                             $file = $resourceStorage->addUploadedFile($value, $folder);
-                            $data[$key] = $file->getIdentifier();
+                            $data[$key] = $file->getCombinedIdentifier();
                         }
                         break;
                     default:
