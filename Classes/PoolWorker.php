@@ -158,8 +158,7 @@ class PoolWorker
                 $this->connection->remove($msg);
                 break;
             default:
-                $this->logger->debug('unknown action');
-                $this->logger->debug('output: ' . $output);
+                throw new \RuntimeException('Unexpected output from child worker');
                 break;
         }
     }
