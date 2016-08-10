@@ -11,6 +11,12 @@ namespace Functional\Backend;
 
 class BasicAmqpBackendTest extends \TYPO3Incubator\Jobqueue\Tests\Functional\Backend\AbstractBasicBackendTest
 {
+
+    /**
+     * @var \PhpAmqpLib\Connection\AMQPStreamConnection
+     */
+    protected $connection;
+
     /**
      * Sets up this test case.
      */
@@ -44,6 +50,24 @@ class BasicAmqpBackendTest extends \TYPO3Incubator\Jobqueue\Tests\Functional\Bac
         ];
         $config = array_merge($GLOBALS['TYPO3_CONF_VARS']['SYS']['queue']['configuration']['rabbitmq']['options'], ['identifier' => 'rabbitmq']);
         $this->subject = $this->getAccessibleMock(\TYPO3Incubator\Jobqueue\Backend\AmqpBackend::class, array('_dummy'), array($config));
+        $connectionReflection = new \ReflectionProperty(\TYPO3Incubator\Jobqueue\Backend\AmqpBackend::class, 'connection');
+        $connectionReflection->setAccessible(true);
+        /** @var \PhpAmqpLib\Connection\AMQPStreamConnection $connection */
+        $this->connection = $connectionReflection->getValue($this->subject);
+    }
+
+    /**
+     * @param string $queue
+     */
+    protected function cleanQueue($queue)
+    {
+        try {
+            $channel = $this->connection->channel();
+            $channel->queue_purge($queue);
+            $channel->close();
+        } catch (\PhpAmqpLib\Exception\AMQPProtocolChannelException $e) {
+            // ...
+        }
     }
 
     /**

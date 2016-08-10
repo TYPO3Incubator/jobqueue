@@ -104,9 +104,9 @@ abstract class AbstractBasicBackendTest extends \TYPO3Incubator\Jobqueue\Tests\F
             ['default', 20],
             ['internal', 15],
             ['default', 37],
-            ['test', 127],
-            ['default', 243],
-            ['internal', 392]
+            ['test', 83],
+            ['default', 47],
+            ['internal', 71]
         ];
     }
 
