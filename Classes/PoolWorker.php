@@ -79,9 +79,6 @@ class PoolWorker
         $this->processPool = $this->objectManager->get(ProcessPool::class, $limit);
         $this->processPool->setProcessFinishedCallback([$this, 'onProcessFinished']);
         $this->useSignals = $useSignals;
-        if ($this->useSignals === true) {
-            Utility::applySignalHandling([SIGCHLD], [$this->processPool, 'externalTick']);
-        }
         /** @var \TYPO3\CMS\Core\Log\LogManager $logM */
         $logM = $this->objectManager->get(\TYPO3\CMS\Core\Log\LogManager::class);
         $this->logger = $logM->getLogger(__CLASS__);
