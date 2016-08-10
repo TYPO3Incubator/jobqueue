@@ -18,6 +18,7 @@ class PoolWorker
      * @var Backend\BackendInterface
      */
     private $connection;
+
     /**
      * @var string
      */
@@ -37,11 +38,6 @@ class PoolWorker
      * @var bool
      */
     protected $running = true;
-
-    /**
-     * @var bool
-     */
-    protected $listening = true;
 
     /**
      * @var \SplObjectStorage<RunningJob>
@@ -200,30 +196,19 @@ class PoolWorker
                 pcntl_signal_dispatch();
             }
             $this->processPool->externalTick();
-            if ($this->listening) {
-                // if our pool is busy atm it makes no sense to wait for a new job.
-                if ($this->processPool->canRunProcess()) {
-                    // if we can run another process but the pool has running processes
-                    // -> we make a non blocking wait call
-                    if ($this->processPool->hasRunningProcesses()) {
-                        $this->wait();
-                    } else {
-                        // no actively running processes. make a blocking wait call!
-                        $this->wait(true);
-                    }
+            // if our pool is busy atm it makes no sense to wait for a new job.
+            if ($this->processPool->canRunProcess()) {
+                // if we can run another process but the pool has running processes
+                // -> we make a non blocking wait call
+                if ($this->processPool->hasRunningProcesses()) {
+                    $this->wait();
                 } else {
-                    // pool is busy ... wait a little and let our loop do the job
-                    usleep(100000);
+                    // no actively running processes. make a blocking wait call!
+                    $this->wait(true);
                 }
             } else {
-                // we are not listening atm. probably because our pool is busy.
+                // pool is busy ... wait a little and let our loop do the job
                 usleep(100000);
-                $this->processPool->externalTick();
-                // go back into listen mode if a process has finished
-                if ($this->processPool->canRunProcess()) {
-                    $this->listening = true;
-                    $this->connection->startListening($this->queue, [$this, 'onMessageReceived']);
-                }
             }
         }
     }
@@ -236,7 +221,6 @@ class PoolWorker
     public function shutdown($graceful = false)
     {
         $this->logger->debug('entering shutdown. graceful: ' . var_export($graceful, true));
-        $this->listening = false;
         $this->running = false;
         if ($graceful === false) {
             // we kill our childs and requeue the currently running jobs
