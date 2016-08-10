@@ -234,10 +234,7 @@ class PoolWorker
 
     protected function wait($blocking = false)
     {
-        $cb = ($this->useSignals === true) ? function () {
-            pcntl_signal_dispatch();
-        } : null;
-        $this->connection->wait($blocking, $cb);
+        $this->connection->wait($blocking);
     }
 
     public function shutdown($graceful = false)

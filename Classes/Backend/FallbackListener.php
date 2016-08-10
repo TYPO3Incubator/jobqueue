@@ -54,9 +54,8 @@ class FallbackListener implements QueueListener, BackendInterface
 
     /**
      * @param bool $blocking
-     * @param callable $callable
      */
-    public function wait($blocking = false, $callable = null)
+    public function wait($blocking = false)
     {
         if ($this->queue === null) {
             // we stopped listening
@@ -66,8 +65,9 @@ class FallbackListener implements QueueListener, BackendInterface
         if ($blocking === true) {
             while ($msg === null) {
                 usleep(100000);
-                if ($callable !== null) {
-                    call_user_func($callable);
+                if (extension_loaded('pcntl')
+                && function_exists('pcntl_signal_dispatch')) {
+                    pcntl_signal_dispatch();
                 }
                 $msg = $this->getMessage();
             }

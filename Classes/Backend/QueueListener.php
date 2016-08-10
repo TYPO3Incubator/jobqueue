@@ -20,10 +20,9 @@ interface QueueListener
 
     /**
      * @param bool $blocking
-     * @param callable $callable
      * @return
      */
-    public function wait($blocking = false, $callable = null);
+    public function wait($blocking = false);
 
     /**
      * @param int $limit

@@ -183,9 +183,8 @@ class AmqpBackend implements BackendInterface, QueueListener
 
     /**
      * @param bool $blocking
-     * @param null $callable
      */
-    public function wait($blocking = false, $callable = null)
+    public function wait($blocking = false)
     {
         $this->consumeChannel->wait(null, true);
     }
