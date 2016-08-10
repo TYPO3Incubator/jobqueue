@@ -119,7 +119,7 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function get($queue, $lock = true)
     {
-        $publishConf = $this->getPublishInformation($queue);
+        $this->getPublishInformation($queue);
         $message = $this->consumeChannel->basic_get($queue, false);
         if ($message instanceof \PhpAmqpLib\Message\AMQPMessage) {
             $msg = $this->buildMessage($message);
@@ -131,7 +131,6 @@ class AmqpBackend implements BackendInterface, QueueListener
                 if($lock === false) {
                     $deliveryTag = $msg->getMeta('amqp.delivery_tag', null);
                     $this->consumeChannel->basic_nack($deliveryTag, false, true);
-                    $this->consumeChannel->wait_for_pending_acks_returns();
                 }
                 return $msg;
             }
@@ -249,11 +248,8 @@ class AmqpBackend implements BackendInterface, QueueListener
         // we simply ack the message retrieval and the message will be removed from the queue
         $deliveryTag = $message->getMeta('amqp.delivery_tag', null);
         if ($deliveryTag !== null) {
-            if (($channel = $message->getMeta('amqp.channel', null)) === null) {
-                $channel = $this->consumeChannel;
-            }
+            $channel = $message->getMeta('amqp.channel', $this->consumeChannel);
             $channel->basic_ack($deliveryTag);
-            $channel->wait_for_pending_acks();
         }
     }
 
@@ -265,15 +261,7 @@ class AmqpBackend implements BackendInterface, QueueListener
     {
         // updating means ack the messsage and queue a new one -> so first remove it (by calling remove which will ack...) and then add a new message
         $this->logger->debug('update called!', ['msg' => $message]);
-        $deliveryTag = $message->getMeta('amqp.delivery_tag', null);
-        if ($deliveryTag !== null) {
-            $this->logger->debug('basic_ack', ['delivery_tag' => $deliveryTag]);
-            if (($channel = $message->getMeta('amqp.channel', null)) === null) {
-                $channel = $this->consumeChannel;
-            }
-            $channel->basic_ack($deliveryTag);
-            $channel->wait_for_pending_acks();
-        }
+        $this->remove($message);
         $this->add($message->getMeta('amqp.queue'), $message);
     }
 
@@ -311,7 +299,6 @@ class AmqpBackend implements BackendInterface, QueueListener
         if($deliveryTag === null) {
             throw new \LogicException('Looks like you are trying to dead letter an unlocked/non-exclusive message');
         }
-        // @todo read up on pros and cons about rejecting or nacking with requeue = false
         $this->declareQueueIfNeeded('failed');
         list($exchange, $routing) = $this->getPublishInformation('failed');
         $this->bindQueue('failed', $exchange, $routing);
