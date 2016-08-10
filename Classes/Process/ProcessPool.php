@@ -98,6 +98,9 @@ class ProcessPool
         if ($this->running === false) {
             return;
         }
+        if (!$this->queueing) {
+            return;
+        }
         while ($this->canRunProcess() && $this->hasQueuedProcesses()) {
             #$this->logger->debug('running queued process');
             // make sure we are at the beginning
