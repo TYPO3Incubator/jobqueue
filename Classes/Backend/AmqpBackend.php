@@ -186,7 +186,15 @@ class AmqpBackend implements BackendInterface, QueueListener
      */
     public function wait($blocking = false)
     {
-        $this->consumeChannel->wait(null, true);
+        if($blocking === true) {
+            $this->consumeChannel->wait(null, true);
+            return;
+        }
+        try {
+            $this->consumeChannel->wait(null, true, 1);
+        } catch (\PhpAmqpLib\Exception\AMQPTimeoutException $e) {
+            // nothing sent by broker for 1 seconds. keep the main loop running.
+        }
     }
 
     /**
