@@ -70,11 +70,15 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['queue'] = [
     ['Example' => 'queue,info']
 );
 
-/** @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher */
-$signalSlotDispatcher = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher::class);
-$signalSlotDispatcher->connect(
-    \TYPO3\CMS\Core\Resource\ResourceStorage::class,
-    \TYPO3\CMS\Core\Resource\ResourceStorage::SIGNAL_PostFileAdd,
-    \TYPO3Incubator\Jobqueue\DemoSignalHandler::class,
-    'queueDemoTasks'
-);
+if(TYPO3_MODE === 'BE') {
+
+    /** @var \TYPO3\CMS\Extbase\SignalSlot\Dispatcher $signalSlotDispatcher */
+    $signalSlotDispatcher = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\SignalSlot\Dispatcher::class);
+    $signalSlotDispatcher->connect(
+        \TYPO3\CMS\Core\Resource\ResourceStorage::class,
+        \TYPO3\CMS\Core\Resource\ResourceStorage::SIGNAL_PostFileAdd,
+        \TYPO3Incubator\Jobqueue\DemoSignalHandler::class,
+        'queueDemoTasks'
+    );
+
+}
